@@ -1,44 +1,116 @@
-Music Theory Codex
+# Open Source Music Theory Codex
 
-A comprehensive, interactive React application for exploring music theory across 50+ genres, featuring a "docs-as-code" aesthetic.
+A comprehensive, interactive "docs-as-code" repository for exploring music theory. This application traces the harmonic lineage of 50+ genres, from the syncopated roots of Ragtime and Jazz, through the Funk and AOR era, to the sophisticated urban soundscapes of City Pop and Future Funk.
 
-Features
+## 🎵 Features
 
-Genre Database: Detailed breakdown of genres from Jazz to Future Funk.
+- **Genre Codex:** Detailed harmonic breakdown of 50+ genres across 5 historical phases:
 
-Interactive Visualizer: Dynamic rendering of Piano, Guitar, and Ukulele chord voicings.
+    - Phase I: Jazz Foundations (1910s-50s)
 
-Circle of Fifths: Interactive tool for understanding key relationships.
+    - Phase II: Rhythm Evolution (60s-70s)
 
-Audio Reference: One-click generation of YouTube reference playlists.
+    - Phase III: Fusion & Sophistication (70s-80s)
 
-Getting Started
+    - Phase IV: The Japanese Evolution (70s-90s)
 
-Prerequisites
+    - Phase V: Modern Derivatives (90s-Present)
 
-Ensure you have Node.js installed.
+- **Instrument Visualizer Engine:** Dynamic rendering of chord voicings for:
 
-Installation
+    - 🎹 Piano: Highlighted key voicings (Rootless, Shells, Clusters, So What).
 
-Clone this repository.
+    - 🎸 Guitar: Fretboard diagrams for specific grips (Hendrix thumb-over, Nile Rodgers strum).
 
-Install dependencies:
+    - 🎻 Ukulele: Jazz and Funk voicing charts with re-entrant tuning logic.
 
+- **Interactive Circle of Fifths:** An SVG-based tool to visualize key signatures, relative minors, and modal borrowing.
+
+- **Audio Reference Lab:** One-click generation of curated YouTube search queries for immediate listening examples.
+
+- **Responsive UI:** Styled like a modern Git documentation site (MkDocs/GitBook aesthetic) with a focus on readability and mobile access.
+
+## 🛠️ Tech Stack
+
+- **Core:** React 18, TypeScript
+
+- **Build Tool:** Vite
+
+- **Styling:** Tailwind CSS
+
+- **Icons:** Lucide React
+
+- **Deployment:** Docker (Multi-stage Nginx build)
+
+## 🚀 Getting Started
+
+**Prerequisites**
+
+- Node.js (v18+)
+
+- npm or yarn
+
+**Local Development**
+
+1. Clone the repository
+```
+git clone [https://github.com/yourusername/music-theory-codex.git](https://github.com/yourusername/music-theory-codex.git)
+cd music-theory-codex
+```
+
+2. Install dependencies
+```
 npm install
+```
 
-
-Running the App
-
-Start the development server:
-
+3. Start the development server
+```
 npm run dev
+```
 
+Open http://localhost:5173 in your browser.
 
-Open your browser to the local address shown in the terminal (usually http://localhost:5173).
+## 🐳 Docker Deployment
 
-Building for Production
+This project includes a production-ready Dockerfile using a multi-stage build process (Node.js builder -> Nginx Alpine).
 
-To create a production build:
+1. Build the Image
+```
+docker build -t music-codex .
+```
 
-npm run build
+2. Run the Container
+```
+docker run -d -p 8080:80 music-codex
+```
 
+3. Access the App
+Navigate to http://localhost:8080.
+
+## 📂 Project Structure
+```
+music-theory-codex/
+├── src/
+│   ├── App.tsx          # Main application logic & Data Engine (50+ genres)
+│   ├── main.tsx         # React entry point
+│   └── index.css        # Tailwind global styles
+├── public/              # Static assets
+├── Dockerfile           # Multi-stage build configuration
+├── nginx.conf           # SPA configuration for Nginx
+├── package.json         # Dependencies and scripts
+├── tsconfig.json        # TypeScript configuration
+├── vite.config.ts       # Vite bundler configuration
+└── README.md            # Project documentation
+```
+
+## 🎼 Theory Credits
+
+Data compiled from the "Open Source Music Theory Codex" report, analyzing:
+
+- **The Royal Road (Oudou Shinkou)** progression in City Pop.
+
+- **Tritone Substitutions** in Bebop.
+
+- **The "One"** in Deep Funk.
+
+- **Quartal Harmony** in Modal Jazz and Neo-Soul.

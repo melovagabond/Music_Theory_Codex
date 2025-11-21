@@ -112,6 +112,6 @@ public
 
 .vscode-test
 
-macOS
+# macOS
 
 .DS_Store
