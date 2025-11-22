@@ -266,14 +266,14 @@ const MusicCodexApp: React.FC = () => {
                   <Rocket className="h-6 w-6 text-amber-300" />
                   <div>
                     <p className="text-[11px] uppercase font-semibold text-amber-200/80">Architecture</p>
-                    <h2 className="text-xl font-bold">Static Site, Dynamic Thinking</h2>
+                    <h2 className="text-xl font-bold">React, Vite, and Typed Data</h2>
                   </div>
                 </div>
                 <p className="text-sm text-slate-300 leading-relaxed">
-                  MkDocs + Material theme deliver fast navigation, instant loading, and mobile readiness. Content lives in Markdown under version control, so every voicing and chart is reviewable like code.
+                  A lightweight React + TypeScript SPA rendered by Vite and styled with Tailwind CSS. Chord shapes, genres, and phases live in typed data modules, so every update is versioned and diffable.
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {[{ title: "Docs-as-Code", body: "Git workflows, pull requests, and branching keep theory transparent." }, { title: "Rendering Stack", body: "abcjs for staff notation, markdown-it-chords for inline grips, Mermaid for genre trees." }, { title: "Navigation", body: "Tabs, integrated TOC, and search keep fifty genres browsable." }, { title: "Mobile Ready", body: "Material's responsive design makes the codex a pocket reference." }].map((card) => (
+                  {[{ title: "Typed Components", body: "Shared codex types keep the data model consistent across views." }, { title: "Data-Driven UI", body: "Genre and chord visualizers read straight from JSON/TS sources." }, { title: "Circle of Fifths", body: "Interactive SVG component built with reusable utility hooks." }, { title: "Tailwind Styling", body: "Utility classes keep the docs-like layout lean and themeable." }].map((card) => (
                     <div key={card.title} className="bg-slate-950/50 border border-slate-800 rounded-xl p-3">
                       <p className="text-[11px] uppercase text-indigo-200/80 font-semibold">{card.title}</p>
                       <p className="text-[13px] text-slate-300 leading-snug mt-1">{card.body}</p>
@@ -287,14 +287,14 @@ const MusicCodexApp: React.FC = () => {
                   <FolderTree className="h-6 w-6 text-emerald-300" />
                   <div>
                     <p className="text-[11px] uppercase font-semibold text-emerald-200/80">Repository Layout</p>
-                    <h2 className="text-xl font-bold">Organized for Fifty Genres</h2>
+                    <h2 className="text-xl font-bold">Organized for Seventy+ Genres</h2>
                   </div>
                 </div>
                 <p className="text-sm text-slate-300 leading-relaxed">
-                  Chronological and thematic folders keep the narrative clear while assets stay centralized for reuse.
+                  Core app shell, data modules, and styling live side by side so additions stay discoverable.
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-slate-200">
-                  {[{ path: "docs/assets/audio/", detail: "Short MP3/OGG snippets of chord progressions." }, { path: "docs/assets/images/", detail: "Diagrams of fretboards and piano rolls." }, { path: "docs/01-jazz-origins/", detail: "Ragtime, Dixieland, Swing—chronological roots." }, { path: "docs/02-funk-soul/", detail: "Motown, P-Funk, Go-Go—rhythm evolution." }, { path: "docs/theory-core/", detail: "Reusable Circle of Fifths, interval charts, and DRY partials." }, { path: "mkdocs.yml", detail: "Material theme config with instant-loading and tabs." }].map((item) => (
+                  {[{ path: "src/App.tsx", detail: "Landing shell, layout cards, and navigation between tools." }, { path: "src/CircleOfFifthsTool.tsx", detail: "SVG-driven Circle of Fifths selection logic." }, { path: "src/InstrumentVisualizer.tsx", detail: "Piano, guitar, and ukulele voicing grids." }, { path: "src/data/phases.ts", detail: "Seventy-plus genre entries grouped by historical phase." }, { path: "src/data/chords.ts", detail: "Shared chord shape data for the visualizer." }, { path: "src/types/codex.ts", detail: "TypeScript interfaces for phases, genres, and chords." }].map((item) => (
                     <div key={item.path} className="bg-slate-950/50 border border-slate-800 rounded-xl p-3">
                       <p className="font-mono text-xs text-emerald-200">{item.path}</p>
                       <p className="text-[13px] text-slate-300 leading-snug mt-1">{item.detail}</p>

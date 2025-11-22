@@ -1,6 +1,6 @@
 # Open Source Music Theory Codex
 
-> A **docs-as-code** playground for harmonic archeology — from Ragtime and Bebop to City Pop and Future Funk.
+> A **docs-as-code** playground for harmonic archeology — from Ragtime and Bebop to City Pop, Future Funk, and modern EDM.
 
 <p align="center">
   <img src="./logo.svg" alt="Open Source Music Theory Codex Logo" width="180" />
@@ -24,7 +24,7 @@
 
 The **Open Source Music Theory Codex** is a comprehensive, interactive repository for exploring music theory as if it were source code.
 
-This application traces the harmonic lineage of 50+ genres, from the syncopated roots of **Ragtime** and **Jazz**, through the **Funk** and **AOR** era, to the sophisticated urban soundscapes of **City Pop** and **Future Funk**.
+This application traces the harmonic lineage of **70+ genres**, from the syncopated roots of **Ragtime** and **Jazz**, through the **Funk** and **AOR** era, to the sophisticated urban soundscapes of **City Pop**, **Shibuya-kei**, **Future Funk**, and **K-Pop**.
 
 Use it as:
 
@@ -51,17 +51,17 @@ Use it as:
 
 ## 🎵 Features
 
-- **Genre Codex:** Detailed harmonic breakdown of 50+ genres across 5 historical phases:
+- **Genre Codex:** Detailed harmonic breakdown of **70+ genres** across 5 historical phases:
 
-  - Phase I: Jazz Foundations (1910s–50s)  
-  - Phase II: Rhythm Evolution (60s–70s)  
-  - Phase III: Fusion & Sophistication (70s–80s)  
-  - Phase IV: The Japanese Evolution (70s–90s)  
+  - Phase I: Jazz Foundations (1910s–50s)
+  - Phase II: Rhythm Evolution (50s–70s)
+  - Phase III: Fusion & Sophistication (70s–80s)
+  - Phase IV: The Japanese Evolution (70s–90s)
   - Phase V: Modern Derivatives (90s–Present)
 
 - **Instrument Visualizer Engine:** Dynamic rendering of chord voicings for:
-  - 🎹 **Piano:** Highlighted key voicings (Rootless, Shells, Clusters, *So What*).  
-  - 🎸 **Guitar:** Fretboard diagrams for specific grips (Hendrix thumb-over, Nile Rodgers-style strum patterns).  
+  - 🎹 **Piano:** Highlighted key voicings (Rootless, Shells, Clusters, *So What*).
+  - 🎸 **Guitar:** Fretboard diagrams for specific grips (Hendrix thumb-over, Nile Rodgers-style strum patterns).
   - 🎻 **Ukulele:** Jazz and Funk voicing charts with re-entrant tuning logic.
 
 - **Interactive Circle of Fifths:** An SVG-based tool to visualize:
@@ -156,7 +156,8 @@ music-theory-codex/
 │   ├── CircleOfFifthsTool.tsx # Circle of Fifths component
 │   ├── InstrumentVisualizer.tsx # Instrument rendering logic
 │   ├── data/
-│   │   └── phases.ts        # Genre phases and progression data
+│   │   ├── chords.ts        # Chord shape data for each instrument
+│   │   └── phases.ts        # Genre phases and progression data (70+ genres)
 │   ├── types/
 │   │   └── codex.ts         # Shared domain types
 │   ├── index.css            # Tailwind global styles
@@ -165,8 +166,14 @@ music-theory-codex/
 │   └── nginx.conf           # SPA configuration for Nginx
 ├── Dockerfile               # Multi-stage build configuration
 ├── .dockerignore            # Build context exclusions
+├── index.html               # Vite HTML template
+├── logo.svg                 # Project mark used in the UI
+├── package-lock.json        # Locked dependency tree
 ├── package.json             # Dependencies and scripts
+├── postcss.config.js        # Tailwind/PostCSS setup
+├── tailwind.config.js       # Tailwind theme configuration
 ├── tsconfig.json            # TypeScript configuration
+├── tsconfig.node.json       # TS config for tooling
 ├── vite.config.js           # Vite bundler configuration
 └── README.md                # Project documentation
 ```
