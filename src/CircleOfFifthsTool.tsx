@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import {
   Disc,
   Info,
@@ -75,6 +75,54 @@ interface CircleChord {
   note: string;        // explanation text
 }
 
+// --- NOTE HELPERS ---
+
+const NOTE_TO_SEMITONE: Record<string, number> = {
+  C: 0,
+  "B#": 0,
+  "C#": 1,
+  "Db": 1,
+  D: 2,
+  "D#": 3,
+  "Eb": 3,
+  E: 4,
+  Fb: 4,
+  "E#": 5,
+  F: 5,
+  "F#": 6,
+  "Gb": 6,
+  G: 7,
+  "G#": 8,
+  "Ab": 8,
+  A: 9,
+  "A#": 10,
+  "Bb": 10,
+  B: 11,
+  Cb: 11,
+};
+
+const SEMITONE_TO_NOTE = {
+  sharp: ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"],
+  flat: ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"],
+};
+
+const normalizeNote = (note: string) =>
+  note
+    .replace("♯", "#")
+    .replace("♭", "b")
+    .replace(/m$/, "") // strip trailing minor marker like "Am"
+    .trim();
+
+const noteToSemitone = (note: string): number => {
+  const normalized = normalizeNote(note);
+  return NOTE_TO_SEMITONE[normalized] ?? 0;
+};
+
+const semitoneToNote = (value: number, preferSharps: boolean) => {
+  const table = preferSharps ? SEMITONE_TO_NOTE.sharp : SEMITONE_TO_NOTE.flat;
+  return table[((value % 12) + 12) % 12];
+};
+
 // Functional snapshot for the active major key
 const getMajorFunctionalChords = (key: CircleKey): CircleChord[] => [
   {
@@ -96,6 +144,27 @@ const getMajorFunctionalChords = (key: CircleKey): CircleChord[] => [
     note: `Dominant of ${key.name} major. Wants to resolve back to I. Classic tension–release.`,
   },
 ];
+
+const getChordRootSemitone = (
+  degree: string,
+  keyRoot: number,
+  minorRoot: number,
+  mode: "major" | "minor"
+) => {
+  const base = mode === "major" ? keyRoot : minorRoot;
+  const normalized = degree.toLowerCase();
+
+  switch (normalized) {
+    case "i":
+      return base;
+    case "iv":
+      return (base + 5) % 12;
+    case "v":
+      return (base + 7) % 12;
+    default:
+      return base;
+  }
+};
 
 const getMinorFunctionalChords = (key: CircleKey): CircleChord[] => [
   {
@@ -120,10 +189,13 @@ const getMinorFunctionalChords = (key: CircleKey): CircleChord[] => [
 
 // --- VISUAL SUBCOMPONENTS (piano + fretboards) ---
 
-const KeyboardDiagram: React.FC<{ intervals: readonly number[] }> = ({ intervals }) => {
+const KeyboardDiagram: React.FC<{ intervals: readonly number[]; root: number }> = ({
+  intervals,
+  root,
+}) => {
   const active = useMemo(
-    () => intervals.map(v => ((v % 12) + 12) % 12),
-    [intervals]
+    () => intervals.map(v => ((v + root) % 12 + 12) % 12),
+    [intervals, root]
   );
 
   const whiteNotes = [0, 2, 4, 5, 7, 9, 11];
@@ -285,6 +357,29 @@ export const CircleOfFifthsTool: React.FC = () => {
   const [activeChordIndex, setActiveChordIndex] = useState<number>(0);
   const [viewMode, setViewMode] = useState<"major" | "minor">("major");
 
+  const preferSharps = useMemo(
+    () => /#|♯/.test(activeKey.name) || /#|♯/.test(activeKey.relativeMinor),
+    [activeKey]
+  );
+
+  const circleStyle = useMemo(
+    () =>
+      ({
+        "--circle-size": "clamp(18rem, 70vw, 30rem)",
+        "--outer-radius": "calc(var(--circle-size) / 2 - 1.8rem)",
+        "--inner-radius": "calc(var(--circle-size) / 2 - 4.3rem)",
+        width: "var(--circle-size)",
+        height: "var(--circle-size)",
+      }) as React.CSSProperties,
+    []
+  );
+
+  const keyRoot = useMemo(() => noteToSemitone(activeKey.name), [activeKey.name]);
+  const minorRoot = useMemo(
+    () => noteToSemitone(activeKey.relativeMinor),
+    [activeKey.relativeMinor]
+  );
+
   const chords: CircleChord[] = useMemo(
     () =>
       viewMode === "major"
@@ -295,6 +390,22 @@ export const CircleOfFifthsTool: React.FC = () => {
 
   const activeChord = chords[activeChordIndex] ?? chords[0];
   const shape = CHORD_SHAPES[activeChord.shape];
+  const chordRoot = useMemo(
+    () => getChordRootSemitone(activeChord.degree, keyRoot, minorRoot, viewMode),
+    [activeChord.degree, keyRoot, minorRoot, viewMode]
+  );
+
+  const chordQuality = useMemo(
+    () => activeChord.symbol.replace(/^[ivIV]+/, ""),
+    [activeChord.symbol]
+  );
+
+  const chordRootLabel = useMemo(
+    () => semitoneToNote(chordRoot, preferSharps),
+    [chordRoot, preferSharps]
+  );
+
+  const chordDisplayName = `${chordRootLabel}${chordQuality}`;
 
   return (
     <div className="max-w-6xl mx-auto space-y-8">
@@ -320,11 +431,17 @@ export const CircleOfFifthsTool: React.FC = () => {
       <div className="grid lg:grid-cols-2 gap-10 items-center">
         {/* BIGGER WHEEL */}
         <div className="flex justify-center">
-          <div className="relative w-80 h-80 md:w-[26rem] md:h-[26rem] rounded-full bg-slate-900 border border-slate-700 shadow-xl flex items-center justify-center">
-            <div className="absolute inset-6 rounded-full bg-slate-950/80 border border-slate-800" />
+          <div
+            className="relative rounded-full bg-slate-900 border border-slate-700 shadow-xl flex items-center justify-center"
+            style={circleStyle}
+          >
+            <div
+              className="absolute rounded-full bg-slate-950/80 border border-slate-800"
+              style={{ inset: "8%" }}
+            />
 
             {/* Active center badge */}
-            <div className="relative z-10 w-40 h-40 rounded-full bg-gradient-to-br from-amber-500/80 to-pink-500/80 flex flex-col items-center justify-center text-slate-950 shadow-[0_0_40px_rgba(251,191,36,0.5)]">
+            <div className="relative z-10 w-[38%] max-w-44 aspect-square rounded-full bg-gradient-to-br from-amber-500/80 to-pink-500/80 flex flex-col items-center justify-center text-slate-950 shadow-[0_0_40px_rgba(251,191,36,0.5)]">
               <div className="text-[11px] font-mono uppercase mb-1 text-slate-900/80">
                 Active Key
               </div>
@@ -359,7 +476,7 @@ export const CircleOfFifthsTool: React.FC = () => {
                     }
                   `}
                   style={{
-                    transform: `rotate(${angleDeg}deg) translateY(-8.4rem) rotate(${-angleDeg}deg)`,
+                    transform: `rotate(${angleDeg}deg) translateY(calc(var(--outer-radius) * -1)) rotate(${-angleDeg}deg)`,
                   }}
                 >
                   {key.name}
@@ -385,7 +502,7 @@ export const CircleOfFifthsTool: React.FC = () => {
                     }
                   `}
                   style={{
-                    transform: `rotate(${angleDeg}deg) translateY(-5rem) rotate(${-angleDeg}deg)`,
+                    transform: `rotate(${angleDeg}deg) translateY(calc(var(--inner-radius) * -1)) rotate(${-angleDeg}deg)`,
                   }}
                 >
                   {key.relativeMinor}
@@ -500,21 +617,19 @@ export const CircleOfFifthsTool: React.FC = () => {
             {/* Active chord explanation */}
             <div className="bg-slate-950/80 border border-slate-800 rounded-lg p-4 text-xs md:text-sm mb-2">
               <div className="font-mono text-slate-100 mb-1">
-                {viewMode === "major" ? (
-                  <>
-                    {activeKey.name} major •{" "}
-                    <span className="text-emerald-300">
-                      {activeChord.degree} ({activeChord.symbol})
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    {activeKey.relativeMinor} minor •{" "}
-                    <span className="text-indigo-300">
-                      {activeChord.degree} ({activeChord.symbol})
-                    </span>
-                  </>
-                )}
+                <div className="flex flex-wrap items-center gap-2">
+                  <span>
+                    {viewMode === "major"
+                      ? `${activeKey.name} major`
+                      : `${activeKey.relativeMinor} minor`}
+                  </span>
+                  <span className="text-slate-500">•</span>
+                  <span className={viewMode === "major" ? "text-emerald-300" : "text-indigo-300"}>
+                    {activeChord.degree} ({activeChord.symbol})
+                  </span>
+                  <span className="text-slate-500">•</span>
+                  <span className="text-amber-300">{chordDisplayName}</span>
+                </div>
               </div>
               <p className="text-slate-400 leading-relaxed">
                 {activeChord.note}
@@ -527,9 +642,9 @@ export const CircleOfFifthsTool: React.FC = () => {
               <div className="bg-slate-950/80 border border-slate-800 rounded-lg p-4 flex flex-col gap-3">
                 <div className="flex items-center gap-2 text-slate-200 text-sm">
                   <Piano className="h-4 w-4 text-emerald-400" />
-                  Piano voicing
+                  Piano voicing • {chordDisplayName}
                 </div>
-                <KeyboardDiagram intervals={shape.pianoIntervals} />
+                <KeyboardDiagram intervals={shape.pianoIntervals} root={chordRoot} />
                 <p className="text-[11px] text-slate-400 mt-1">
                   Intervals from root:{" "}
                   <span className="font-mono">
@@ -543,7 +658,7 @@ export const CircleOfFifthsTool: React.FC = () => {
               <div className="bg-slate-950/80 border border-slate-800 rounded-lg p-4 flex flex-col gap-3">
                 <div className="flex items-center gap-2 text-slate-200 text-sm">
                   <Guitar className="h-4 w-4 text-amber-300" />
-                  Guitar shape
+                  Guitar shape • {chordDisplayName}
                 </div>
                 <GuitarFretboard frets={shape.guitarFrets} />
                 <p className="text-[11px] text-slate-400 mt-1">
@@ -557,7 +672,7 @@ export const CircleOfFifthsTool: React.FC = () => {
               <div className="bg-slate-950/80 border border-slate-800 rounded-lg p-4 flex flex-col gap-3">
                 <div className="flex items-center gap-2 text-slate-200 text-sm">
                   <Music2 className="h-4 w-4 text-pink-300" />
-                  Ukulele shape
+                  Ukulele shape • {chordDisplayName}
                 </div>
                 <UkeFretboard frets={shape.ukeFrets} />
                 <p className="text-[11px] text-slate-400 mt-1">
