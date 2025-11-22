@@ -75,6 +75,21 @@ interface CircleChord {
   note: string;        // explanation text
 }
 
+// --- SHAPE HELPERS ---
+
+const transposeFrets = (frets: readonly number[], semitoneOffset: number) => {
+  const playableFrets = frets.filter(fret => fret >= 0);
+  const minPlayable = playableFrets.length > 0 ? Math.min(...playableFrets) : 0;
+
+  let normalizedOffset = semitoneOffset;
+
+  while (minPlayable + normalizedOffset < 0) {
+    normalizedOffset += 12;
+  }
+
+  return frets.map(fret => (fret >= 0 ? fret + normalizedOffset : fret));
+};
+
 // --- NOTE HELPERS ---
 
 const NOTE_TO_SEMITONE: Record<string, number> = {
@@ -407,6 +422,16 @@ export const CircleOfFifthsTool: React.FC = () => {
 
   const chordDisplayName = `${chordRootLabel}${chordQuality}`;
 
+  const transposedGuitarFrets = useMemo(
+    () => transposeFrets(shape.guitarFrets, chordRoot),
+    [chordRoot, shape.guitarFrets]
+  );
+
+  const transposedUkeFrets = useMemo(
+    () => transposeFrets(shape.ukeFrets, chordRoot),
+    [chordRoot, shape.ukeFrets]
+  );
+
   return (
     <div className="max-w-6xl mx-auto space-y-8">
       <header className="mb-4">
@@ -660,7 +685,7 @@ export const CircleOfFifthsTool: React.FC = () => {
                   <Guitar className="h-4 w-4 text-amber-300" />
                   Guitar shape • {chordDisplayName}
                 </div>
-                <GuitarFretboard frets={shape.guitarFrets} />
+                <GuitarFretboard frets={transposedGuitarFrets} />
                 <p className="text-[11px] text-slate-400 mt-1">
                   <span className="font-mono">X</span> = muted,{" "}
                   <span className="font-mono">O</span> = open string. Dots show
@@ -674,7 +699,7 @@ export const CircleOfFifthsTool: React.FC = () => {
                   <Music2 className="h-4 w-4 text-pink-300" />
                   Ukulele shape • {chordDisplayName}
                 </div>
-                <UkeFretboard frets={shape.ukeFrets} />
+                <UkeFretboard frets={transposedUkeFrets} />
                 <p className="text-[11px] text-slate-400 mt-1">
                   Tuned to <span className="font-mono">G–C–E–A</span>. Treat
                   these as movable shapes when you start exploring transposition.
