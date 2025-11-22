@@ -12,6 +12,10 @@ import {
   Headphones,
   Play,
   Key,
+  Rocket,
+  FolderTree,
+  Plug,
+  Lightbulb,
 } from "lucide-react";
 import { CircleOfFifthsTool } from "./CircleOfFifthsTool";
 import { InstrumentVisualizer, deriveProgressionChords } from "./InstrumentVisualizer";
@@ -822,8 +826,8 @@ const phases: Phase[] = [
 /* ---------- SIDEBAR ---------- */
 
 interface SidebarProps {
-  activeView: "genre" | "circle";
-  setActiveView: (view: "genre" | "circle") => void;
+  activeView: "home" | "genre" | "circle";
+  setActiveView: (view: "home" | "genre" | "circle") => void;
   activeGenre: Genre;
   setActiveGenre: (genre: Genre) => void;
   mobileMenuOpen: boolean;
@@ -858,6 +862,22 @@ const Sidebar: React.FC<SidebarProps> = ({
 
       <div className="flex-1 overflow-y-auto custom-scrollbar">
         <div className="p-3 space-y-4">
+          <button
+            onClick={() => {
+              setActiveView("home");
+              setMobileMenuOpen(false);
+            }}
+            className={`w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 font-semibold text-sm transition-all
+            ${
+              activeView === "home"
+                ? "bg-amber-500/10 text-amber-300 border border-amber-500/50 shadow-lg"
+                : "text-slate-300 hover:bg-slate-800 hover:text-white"
+            }`}
+          >
+            <Rocket className="h-5 w-5" />
+            Overview / Homepage
+          </button>
+
           <button
             onClick={() => {
               setActiveView("circle");
@@ -934,7 +954,9 @@ const getCommonKeys = (genre: Genre): string[] => {
 /* ---------- MAIN APP ---------- */
 
 const MusicCodexApp: React.FC = () => {
-  const [activeView, setActiveView] = useState<"genre" | "circle">("genre");
+  const [activeView, setActiveView] = useState<"home" | "genre" | "circle">(
+    "home"
+  );
   const [activeGenre, setActiveGenre] = useState<Genre>(
     phases[3].genres[0] // Default to City Pop
   );
@@ -979,6 +1001,206 @@ const MusicCodexApp: React.FC = () => {
         {activeView === "circle" ? (
           <div className="pt-20 md:pt-10 px-3 sm:px-6 lg:px-10 w-full max-w-screen-2xl mx-auto flex items-stretch">
             <CircleOfFifthsTool />
+          </div>
+        ) : activeView === "home" ? (
+          <div className="pt-20 md:pt-10 px-3 sm:px-6 lg:px-10 w-full max-w-screen-2xl mx-auto space-y-8 lg:space-y-10">
+            {/* Hero */}
+            <section className="bg-gradient-to-r from-indigo-600/30 via-purple-600/30 to-amber-500/30 border border-indigo-500/40 rounded-3xl p-6 sm:p-8 shadow-2xl">
+              <div className="flex flex-col lg:flex-row gap-6 lg:gap-10 items-start">
+                <div className="space-y-4 flex-1">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/20 text-[11px] uppercase font-semibold text-white/90">
+                    <span className="bg-black/30 px-2 py-0.5 rounded-full font-mono">Docs-as-code</span>
+                    <span>Open Source Music Theory Codex</span>
+                  </div>
+                  <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white leading-tight">
+                    The Open Source Music Theory Codex: Jazz to City Pop, Fifty Genres, One Learning Workstation
+                  </h1>
+                  <p className="text-sm sm:text-base text-indigo-50/90 leading-relaxed max-w-3xl">
+                    A dynamic, version-controlled cheat sheet for harmonic and structural analysis across fifty genres. Treat musical knowledge like software: reproducible, searchable, and ready for pull requests.
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    {["Triad of accompaniment: Piano · Guitar · Ukulele", "Guided by harmonic DNA: ii–V–I, secondary dominants, modal color", "Built for contribution: MkDocs + Material theme, DRY Markdown partials"].map((pill) => (
+                      <span
+                        key={pill}
+                        className="px-3 py-2 bg-slate-950/70 border border-white/10 rounded-lg text-xs sm:text-sm text-indigo-50/90"
+                      >
+                        {pill}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div className="bg-slate-950/70 border border-white/10 rounded-2xl p-4 sm:p-5 w-full lg:w-80 space-y-3">
+                  <div className="flex items-center gap-3 text-white">
+                    <BookOpen className="h-6 w-6" />
+                    <div>
+                      <p className="text-[11px] uppercase font-semibold tracking-wide text-indigo-200">Phase Map</p>
+                      <p className="text-sm">From Ragtime to Future Funk</p>
+                    </div>
+                  </div>
+                  <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar pr-1">
+                    {phases.map((phase) => (
+                      <div key={phase.id} className="bg-white/5 rounded-lg p-3 border border-white/5">
+                        <p className="text-[11px] uppercase text-indigo-100/80 font-semibold flex items-center gap-2">
+                          <GitBranch className="h-3 w-3" /> {phase.title}
+                        </p>
+                        <p className="text-[12px] text-slate-200/90 mt-1 leading-snug">
+                          {phase.learning[0]}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => setActiveView("genre")}
+                    className="w-full bg-white text-indigo-900 py-2.5 rounded-lg text-sm font-bold flex items-center justify-center gap-2 hover:bg-indigo-50 transition-colors"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                    Dive into the Genres
+                  </button>
+                </div>
+              </div>
+            </section>
+
+            {/* Architecture */}
+            <section className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+              <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl space-y-4">
+                <div className="flex items-center gap-3 text-white">
+                  <Rocket className="h-6 w-6 text-amber-300" />
+                  <div>
+                    <p className="text-[11px] uppercase font-semibold text-amber-200/80">Architecture</p>
+                    <h2 className="text-xl font-bold">Static Site, Dynamic Thinking</h2>
+                  </div>
+                </div>
+                <p className="text-sm text-slate-300 leading-relaxed">
+                  MkDocs + Material theme deliver fast navigation, instant loading, and mobile readiness. Content lives in Markdown under version control, so every voicing and chart is reviewable like code.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {[{ title: "Docs-as-Code", body: "Git workflows, pull requests, and branching keep theory transparent." }, { title: "Rendering Stack", body: "abcjs for staff notation, markdown-it-chords for inline grips, Mermaid for genre trees." }, { title: "Navigation", body: "Tabs, integrated TOC, and search keep fifty genres browsable." }, { title: "Mobile Ready", body: "Material's responsive design makes the codex a pocket reference." }].map((card) => (
+                    <div key={card.title} className="bg-slate-950/50 border border-slate-800 rounded-xl p-3">
+                      <p className="text-[11px] uppercase text-indigo-200/80 font-semibold">{card.title}</p>
+                      <p className="text-[13px] text-slate-300 leading-snug mt-1">{card.body}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl space-y-4">
+                <div className="flex items-center gap-3 text-white">
+                  <FolderTree className="h-6 w-6 text-emerald-300" />
+                  <div>
+                    <p className="text-[11px] uppercase font-semibold text-emerald-200/80">Repository Layout</p>
+                    <h2 className="text-xl font-bold">Organized for Fifty Genres</h2>
+                  </div>
+                </div>
+                <p className="text-sm text-slate-300 leading-relaxed">
+                  Chronological and thematic folders keep the narrative clear while assets stay centralized for reuse.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-slate-200">
+                  {[{ path: "docs/assets/audio/", detail: "Short MP3/OGG snippets of chord progressions." }, { path: "docs/assets/images/", detail: "Diagrams of fretboards and piano rolls." }, { path: "docs/01-jazz-origins/", detail: "Ragtime, Dixieland, Swing—chronological roots." }, { path: "docs/02-funk-soul/", detail: "Motown, P-Funk, Go-Go—rhythm evolution." }, { path: "docs/theory-core/", detail: "Reusable Circle of Fifths, interval charts, and DRY partials." }, { path: "mkdocs.yml", detail: "Material theme config with instant-loading and tabs." }].map((item) => (
+                    <div key={item.path} className="bg-slate-950/50 border border-slate-800 rounded-xl p-3">
+                      <p className="font-mono text-xs text-emerald-200">{item.path}</p>
+                      <p className="text-[13px] text-slate-300 leading-snug mt-1">{item.detail}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </section>
+
+            {/* Rendering + Contribution */}
+            <section className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+              <div className="lg:col-span-2 bg-slate-900/70 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl space-y-4">
+                <div className="flex items-center gap-3 text-white">
+                  <Plug className="h-6 w-6 text-indigo-300" />
+                  <div>
+                    <p className="text-[11px] uppercase font-semibold text-indigo-200/80">Rendering Stack</p>
+                    <h2 className="text-xl font-bold">Notation Without Bloat</h2>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {[{ title: "abcjs", desc: "Browser-rendered staff notation from lightweight ABC text." }, { title: "markdown-it-chords", desc: "Inline chord symbols above lyrics or rhythm charts for cheat-sheet speed." }, { title: "Mermaid.js", desc: "Genre lineage trees from Blues to City Pop and Future Funk." }].map((tool) => (
+                    <div key={tool.title} className="bg-slate-950/50 border border-slate-800 rounded-xl p-3">
+                      <p className="text-[11px] uppercase text-indigo-200/80 font-semibold">{tool.title}</p>
+                      <p className="text-[13px] text-slate-300 leading-snug mt-1">{tool.desc}</p>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-sm text-slate-300 leading-relaxed">
+                  These plugins keep the repository lean—notation, chord grips, and diagrams render from plain text, so every contribution diff is human-readable.
+                </p>
+              </div>
+
+              <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl space-y-3">
+                <div className="flex items-center gap-3 text-white">
+                  <Lightbulb className="h-6 w-6 text-amber-300" />
+                  <div>
+                    <p className="text-[11px] uppercase font-semibold text-amber-200/80">Contribution Workflow</p>
+                    <h2 className="text-lg font-bold">Ship theory like code</h2>
+                  </div>
+                </div>
+                <ul className="space-y-2 text-sm text-slate-300">
+                  <li>Fork → branch → Markdown edits → pull request with automated checks.</li>
+                  <li>Keep audio/images in assets; reuse DRY partials for core theory topics.</li>
+                  <li>Use mkdocs.yml to register new sections and keep navigation coherent.</li>
+                  <li>Favor concise progressions (Royal Road, ii–V–I, slash chords) with instrument grips for piano/guitar/ukulele.</li>
+                </ul>
+              </div>
+            </section>
+
+            {/* Instrument Cheat Sheets */}
+            <section className="bg-slate-900/70 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl space-y-4">
+              <div className="flex items-center gap-3 text-white">
+                <Headphones className="h-6 w-6 text-emerald-300" />
+                <div>
+                  <p className="text-[11px] uppercase font-semibold text-emerald-200/80">Triad of Accompaniment</p>
+                  <h2 className="text-xl font-bold">Instrument Quick References</h2>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {[{ title: "Piano", bullets: ["Jazz: shells in LH, syncopated RH stabs for swing", "Funk: clavinet-style octaves and percussive clusters", "City Pop: spread voicings (root–5th–10th) on backbeats", "Reggae/Ska: bubble + bang split between hands"] }, { title: "Guitar", bullets: ["Hendrix grip lets bass + embellishments coexist", "Nile Rodgers strum: constant 16ths, left-hand squeezes on accents", "Freddie Green: short quarter-note shells for swing", "City Pop/Yacht Rock: Mu-major, add9, 11th slash chords"] }, { title: "Ukulele", bullets: ["Jazz: movable diminished 7th slides every 3 frets", "Funk: scratch strum as a percussion layer", "Bossa/Samba: clave-aware syncopation with light touch", "Lo-Fi/Neo-Soul: thumb-only broken chords for warmth"] }].map((instrument) => (
+                  <div key={instrument.title} className="bg-slate-950/50 border border-slate-800 rounded-xl p-3">
+                    <p className="text-[11px] uppercase text-emerald-200/80 font-semibold">{instrument.title}</p>
+                    <ul className="mt-2 space-y-1 text-[13px] text-slate-300 leading-snug list-disc pl-4">
+                      {instrument.bullets.map((b) => (
+                        <li key={b}>{b}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {/* Sample Markdown Spec */}
+            <section className="bg-slate-900/70 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl space-y-4">
+              <div className="flex items-center gap-3 text-white">
+                <FileText className="h-6 w-6 text-indigo-300" />
+                <div>
+                  <p className="text-[11px] uppercase font-semibold text-indigo-200/80">Markdown Specification</p>
+                  <h2 className="text-xl font-bold">Cheat-Sheet Friendly Charts</h2>
+                </div>
+              </div>
+              <p className="text-sm text-slate-300 leading-relaxed">
+                Keep charts human-readable: small tables, ABC snippets, chord grids, and inline annotations. Below is a mini template modeled after the codex briefing.
+              </p>
+              <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-4 font-mono text-xs text-slate-100 space-y-2 overflow-auto">
+                <div>Plastic Love — Progression Analysis</div>
+                <div>Genre: City Pop | BPM: 105 | Key: D Minor</div>
+                <div className="grid grid-cols-4 gap-2 pt-2 text-emerald-300">
+                  <span>Bar</span>
+                  <span>Chord</span>
+                  <span>Voicing (Piano)</span>
+                  <span>Function</span>
+                </div>
+                {["1 | Gm9 | G–Bb–D–F–A | iv7 (Dorian)", "2 | C13 | C–E–Bb–D–A | V7 of III", "3 | Am7 | A–C–E–G | v7", "4 | Dm7 | D–F–A–C | i7"].map((line) => (
+                  <div key={line} className="grid grid-cols-4 gap-2 text-slate-200">
+                    {line.split(" | ").map((cell, idx) => (
+                      <span key={`${line}-${idx}`}>{cell}</span>
+                    ))}
+                  </div>
+                ))}
+              </div>
+              <p className="text-[13px] text-slate-400 leading-snug">
+                Add a YAML front matter block to register new pages in <code>mkdocs.yml</code>, and keep assets referenced from <code>docs/assets</code> to stay modular.
+              </p>
+            </section>
           </div>
         ) : (
           <div className="pt-20 md:pt-10 px-3 sm:px-6 lg:px-10 w-full max-w-screen-2xl mx-auto">
