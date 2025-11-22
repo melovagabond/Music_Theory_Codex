@@ -1,700 +1,574 @@
-import React, { useState } from "react";
-import { Compass, Info, Piano, Guitar, Radio } from "lucide-react";
+import React, { useState, useMemo } from "react";
+import {
+  Disc,
+  Info,
+  Piano,
+  Guitar,
+  Music2,
+  ChevronRight,
+} from "lucide-react";
 
-type DiatonicChord = {
-  degree: string;   // I, ii, iii...
-  quality: string;  // Maj7, min7, etc
-  symbol: string;   // Cmaj7
-  function: string; // Tonic / Subdominant / Dominant
-};
+// --- TYPES & DATA ---
 
-type KeyDetail = {
-  name: string;             // C, G, D...
-  majorKey: string;         // "C Major"
-  relativeMinor: string;    // "A minor"
-  accidentals: string;      // "No sharps or flats"
-  scale: string[];          // [C, D, E, F, G, A, B]
-  diatonicChords: DiatonicChord[];
-  commonProgressions: string[];
-  usageNotes: string[];
-  instrumentTips: {
-    piano: string;
-    guitar: string;
-    ukulele: string;
-  };
-};
+interface CircleKey {
+  name: string;          // C, G, D...
+  relativeMinor: string; // Am, Em...
+  accidentals: string;   // 0, 1♯, 2♭...
+}
 
-const KEY_ORDER: string[] = [
-  "C",
-  "G",
-  "D",
-  "A",
-  "E",
-  "B",
-  "F#",
-  "Db",
-  "Ab",
-  "Eb",
-  "Bb",
-  "F",
+const CIRCLE_KEYS: CircleKey[] = [
+  { name: "C",  relativeMinor: "Am",  accidentals: "0"   },
+  { name: "G",  relativeMinor: "Em",  accidentals: "1♯"  },
+  { name: "D",  relativeMinor: "Bm",  accidentals: "2♯"  },
+  { name: "A",  relativeMinor: "F♯m", accidentals: "3♯"  },
+  { name: "E",  relativeMinor: "C♯m", accidentals: "4♯"  },
+  { name: "B",  relativeMinor: "G♯m", accidentals: "5♯"  },
+  { name: "F♯", relativeMinor: "D♯m", accidentals: "6♯"  },
+  { name: "D♭", relativeMinor: "B♭m", accidentals: "5♭"  },
+  { name: "A♭", relativeMinor: "Fm",  accidentals: "4♭"  },
+  { name: "E♭", relativeMinor: "Cm",  accidentals: "3♭"  },
+  { name: "B♭", relativeMinor: "Gm",  accidentals: "2♭"  },
+  { name: "F",  relativeMinor: "Dm",  accidentals: "1♭"  },
 ];
 
-const KEY_DATA: Record<string, KeyDetail> = {
-  C: {
-    name: "C",
-    majorKey: "C Major",
-    relativeMinor: "A minor",
-    accidentals: "No sharps or flats",
-    scale: ["C", "D", "E", "F", "G", "A", "B"],
-    diatonicChords: [
-      { degree: "I", quality: "Maj7", symbol: "Cmaj7", function: "Tonic" },
-      { degree: "ii", quality: "min7", symbol: "Dm7", function: "Pre-dominant" },
-      { degree: "iii", quality: "min7", symbol: "Em7", function: "Tonic color" },
-      { degree: "IV", quality: "Maj7", symbol: "Fmaj7", function: "Subdominant" },
-      { degree: "V", quality: "Dom7", symbol: "G7", function: "Dominant" },
-      { degree: "vi", quality: "min7", symbol: "Am7", function: "Relative minor" },
-      { degree: "vii°", quality: "m7♭5", symbol: "Bm7♭5", function: "Leading-tone" },
-    ],
-    commonProgressions: [
-      "ii – V – I",
-      "I – vi – IV – V",
-      "IV – V – iii – vi (Royal Road template)",
-    ],
-    usageNotes: [
-      "Neutral, 'home base' key – great for hearing function clearly.",
-      "Perfect for practicing ii–V–I and basic jazz voicings.",
-      "Many City Pop and AOR tunes can be mentally transposed here.",
-    ],
-    instrumentTips: {
-      piano:
-        "Practice shell voicings (3rd + 7th) for Dm7, G7, and Cmaj7 in both hands.",
-      guitar:
-        "Use simple CAGED shapes for Cmaj7, Dm7, G7, and Am7 around the 3rd and 5th frets.",
-      ukulele:
-        "Lean on open-position C, F, G7, and Am shapes; focus on clean chord changes in time.",
-    },
-  },
-  G: {
-    name: "G",
-    majorKey: "G Major",
-    relativeMinor: "E minor",
-    accidentals: "1 sharp (F#)",
-    scale: ["G", "A", "B", "C", "D", "E", "F#"],
-    diatonicChords: [
-      { degree: "I", quality: "Maj7", symbol: "Gmaj7", function: "Tonic" },
-      { degree: "ii", quality: "min7", symbol: "Am7", function: "Pre-dominant" },
-      { degree: "iii", quality: "min7", symbol: "Bm7", function: "Tonic color" },
-      { degree: "IV", quality: "Maj7", symbol: "Cmaj7", function: "Subdominant" },
-      { degree: "V", quality: "Dom7", symbol: "D7", function: "Dominant" },
-      { degree: "vi", quality: "min7", symbol: "Em7", function: "Relative minor" },
-      { degree: "vii°", quality: "m7♭5", symbol: "F#m7♭5", function: "Leading-tone" },
-    ],
-    commonProgressions: [
-      "ii – V – I (Am7 – D7 – Gmaj7)",
-      "I – V – vi – IV (G – D – Em – C)",
-    ],
-    usageNotes: [
-      "G is the folk/acoustic comfort zone; great guitar key.",
-      "Shares many chords with C major, so modulation between them is easy.",
-    ],
-    instrumentTips: {
-      piano:
-        "Explore voicings that keep C and D as common tones between Cmaj7 and Gmaj7.",
-      guitar:
-        "G, C, D, and Em in open position are classic singer-songwriter territory.",
-      ukulele:
-        "G, C, D, and Em are all friendly; use them to try I–V–vi–IV pop progressions.",
-    },
-  },
-  D: {
-    name: "D",
-    majorKey: "D Major",
-    relativeMinor: "B minor",
-    accidentals: "2 sharps (F#, C#)",
-    scale: ["D", "E", "F#", "G", "A", "B", "C#"],
-    diatonicChords: [
-      { degree: "I", quality: "Maj7", symbol: "Dmaj7", function: "Tonic" },
-      { degree: "ii", quality: "min7", symbol: "Em7", function: "Pre-dominant" },
-      { degree: "iii", quality: "min7", symbol: "F#m7", function: "Tonic color" },
-      { degree: "IV", quality: "Maj7", symbol: "Gmaj7", function: "Subdominant" },
-      { degree: "V", quality: "Dom7", symbol: "A7", function: "Dominant" },
-      { degree: "vi", quality: "min7", symbol: "Bm7", function: "Relative minor" },
-      { degree: "vii°", quality: "m7♭5", symbol: "C#m7♭5", function: "Leading-tone" },
-    ],
-    commonProgressions: ["ii – V – I", "I – V – vi – IV"],
-    usageNotes: [
-      "Another guitar-friendly key; often used for brighter, open-sounding songs.",
-    ],
-    instrumentTips: {
-      piano:
-        "Try Dmaj9, Gmaj9, and A13 for instant 'expensive' harmony in this key.",
-      guitar:
-        "Use capo tricks: C shapes with capo on 2 to think in C while playing in D.",
-      ukulele:
-        "D, G, A, and Bm are bread-and-butter pop chords in this key.",
-    },
-  },
-  F: {
-    name: "F",
-    majorKey: "F Major",
-    relativeMinor: "D minor",
-    accidentals: "1 flat (Bb)",
-    scale: ["F", "G", "A", "Bb", "C", "D", "E"],
-    diatonicChords: [
-      { degree: "I", quality: "Maj7", symbol: "Fmaj7", function: "Tonic" },
-      { degree: "ii", quality: "min7", symbol: "Gm7", function: "Pre-dominant" },
-      { degree: "iii", quality: "min7", symbol: "Am7", function: "Tonic color" },
-      { degree: "IV", quality: "Maj7", symbol: "Bbmaj7", function: "Subdominant" },
-      { degree: "V", quality: "Dom7", symbol: "C7", function: "Dominant" },
-      { degree: "vi", quality: "min7", symbol: "Dm7", function: "Relative minor" },
-      { degree: "vii°", quality: "m7♭5", symbol: "Em7♭5", function: "Leading-tone" },
-    ],
-    commonProgressions: [
-      "ii – V – I (Gm7 – C7 – Fmaj7)",
-      "IV – V – iii – vi (Bbmaj7 – C7 – Am7 – Dm7)",
-    ],
-    usageNotes: [
-      "F sits just on the 'flat' side – great for soul, R&B, and City Pop flavors.",
-    ],
-    instrumentTips: {
-      piano:
-        "Fmaj9 and Bbmaj9 are lush; practice voice-leading between them with common tones.",
-      guitar:
-        "F is bar-chord heavy; good for practicing clean barring across the neck.",
-      ukulele:
-        "F, Bb, C, and Dm are classic I–IV–V–vi palette for warm ballads.",
-    },
-  },
-  Bb: {
-    name: "Bb",
-    majorKey: "Bb Major",
-    relativeMinor: "G minor",
-    accidentals: "2 flats (Bb, Eb)",
-    scale: ["Bb", "C", "D", "Eb", "F", "G", "A"],
-    diatonicChords: [
-      { degree: "I", quality: "Maj7", symbol: "Bbmaj7", function: "Tonic" },
-      { degree: "ii", quality: "min7", symbol: "Cm7", function: "Pre-dominant" },
-      { degree: "iii", quality: "min7", symbol: "Dm7", function: "Tonic color" },
-      { degree: "IV", quality: "Maj7", symbol: "Ebmaj7", function: "Subdominant" },
-      { degree: "V", quality: "Dom7", symbol: "F7", function: "Dominant" },
-      { degree: "vi", quality: "min7", symbol: "Gm7", function: "Relative minor" },
-      { degree: "vii°", quality: "m7♭5", symbol: "Am7♭5", function: "Leading-tone" },
-    ],
-    commonProgressions: ["ii – V – I", "I – IV – V"],
-    usageNotes: [
-      "Bb is a horn-player’s home key; very common in jazz and big band charts.",
-    ],
-    instrumentTips: {
-      piano:
-        "Think in terms of Eb and F as subdominant/dominant pillars and decorate around them.",
-      guitar:
-        "Practice Bbmaj7 as both bar chords and partial triads to avoid fatigue.",
-      ukulele:
-        "Bb can be awkward at first; break the chord into mini-shapes and add fingers gradually.",
-    },
-  },
-  Eb: {
-    name: "Eb",
-    majorKey: "Eb Major",
-    relativeMinor: "C minor",
-    accidentals: "3 flats (Bb, Eb, Ab)",
-    scale: ["Eb", "F", "G", "Ab", "Bb", "C", "D"],
-    diatonicChords: [
-      { degree: "I", quality: "Maj7", symbol: "Ebmaj7", function: "Tonic" },
-      { degree: "ii", quality: "min7", symbol: "Fm7", function: "Pre-dominant" },
-      { degree: "iii", quality: "min7", symbol: "Gm7", function: "Tonic color" },
-      { degree: "IV", quality: "Maj7", symbol: "Abmaj7", function: "Subdominant" },
-      { degree: "V", quality: "Dom7", symbol: "Bb7", function: "Dominant" },
-      { degree: "vi", quality: "min7", symbol: "Cm7", function: "Relative minor" },
-      { degree: "vii°", quality: "m7♭5", symbol: "Dm7♭5", function: "Leading-tone" },
-    ],
-    commonProgressions: ["ii – V – I", "I – vi – ii – V"],
-    usageNotes: [
-      "Eb is lush and 'flat-heavy'; think ballads, jazz standards, and horn arrangements.",
-    ],
-    instrumentTips: {
-      piano:
-        "Use wide voicings (10ths) between left and right hand for a big, orchestral feel.",
-      guitar:
-        "Capo on 3 and think in C to steal C-major licks in Eb.",
-      ukulele:
-        "Eb, Ab, Bb, and Cm give you a full diatonic palette for slower, emotional tracks.",
-    },
-  },
-  Ab: {
-    name: "Ab",
-    majorKey: "Ab Major",
-    relativeMinor: "F minor",
-    accidentals: "4 flats (Bb, Eb, Ab, Db)",
-    scale: ["Ab", "Bb", "C", "Db", "Eb", "F", "G"],
-    diatonicChords: [
-      { degree: "I", quality: "Maj7", symbol: "Abmaj7", function: "Tonic" },
-      { degree: "ii", quality: "min7", symbol: "Bbm7", function: "Pre-dominant" },
-      { degree: "iii", quality: "min7", symbol: "Cm7", function: "Tonic color" },
-      { degree: "IV", quality: "Maj7", symbol: "Dbmaj7", function: "Subdominant" },
-      { degree: "V", quality: "Dom7", symbol: "Eb7", function: "Dominant" },
-      { degree: "vi", quality: "min7", symbol: "Fm7", function: "Relative minor" },
-      { degree: "vii°", quality: "m7♭5", symbol: "Gm7♭5", function: "Leading-tone" },
-    ],
-    commonProgressions: ["ii – V – I", "I – IV – V"],
-    usageNotes: [
-      "Ab screams R&B, gospel, and big vocal moments – it sits great for many singers.",
-    ],
-    instrumentTips: {
-      piano:
-        "Lean into black keys; Ab is surprisingly ergonomic for many voicings.",
-      guitar:
-        "Capo on 1 and think in G to leverage friendly open chords.",
-      ukulele:
-        "Use small, movable triad shapes; don’t torture yourself with full bars if you don’t have to.",
-    },
-  },
-  A: {
-    name: "A",
-    majorKey: "A Major",
-    relativeMinor: "F# minor",
-    accidentals: "3 sharps (F#, C#, G#)",
-    scale: ["A", "B", "C#", "D", "E", "F#", "G#"],
-    diatonicChords: [
-      { degree: "I", quality: "Maj7", symbol: "Amaj7", function: "Tonic" },
-      { degree: "ii", quality: "min7", symbol: "Bm7", function: "Pre-dominant" },
-      { degree: "iii", quality: "min7", symbol: "C#m7", function: "Tonic color" },
-      { degree: "IV", quality: "Maj7", symbol: "Dmaj7", function: "Subdominant" },
-      { degree: "V", quality: "Dom7", symbol: "E7", function: "Dominant" },
-      { degree: "vi", quality: "min7", symbol: "F#m7", function: "Relative minor" },
-      { degree: "vii°", quality: "m7♭5", symbol: "G#m7♭5", function: "Leading-tone" },
-    ],
-    commonProgressions: ["I – V – vi – IV", "ii – V – I"],
-    usageNotes: ["Bright, present key; common for rock, pop, and worship tunes."],
-    instrumentTips: {
-      piano:
-        "Try Amaj9, Dmaj9, and E13 for big, modern pop/jazz color.",
-      guitar:
-        "A major plus D and E are your bread-and-butter rock progression friends.",
-      ukulele:
-        "Transpose G-key shapes up a whole step to think more simply while playing in A.",
-    },
-  },
-  E: {
-    name: "E",
-    majorKey: "E Major",
-    relativeMinor: "C# minor",
-    accidentals: "4 sharps (F#, C#, G#, D#)",
-    scale: ["E", "F#", "G#", "A", "B", "C#", "D#"],
-    diatonicChords: [
-      { degree: "I", quality: "Maj7", symbol: "Emaj7", function: "Tonic" },
-      { degree: "ii", quality: "min7", symbol: "F#m7", function: "Pre-dominant" },
-      { degree: "iii", quality: "min7", symbol: "G#m7", function: "Tonic color" },
-      { degree: "IV", quality: "Maj7", symbol: "Amaj7", function: "Subdominant" },
-      { degree: "V", quality: "Dom7", symbol: "B7", function: "Dominant" },
-      { degree: "vi", quality: "min7", symbol: "C#m7", function: "Relative minor" },
-      { degree: "vii°", quality: "m7♭5", symbol: "D#m7♭5", function: "Leading-tone" },
-    ],
-    commonProgressions: ["I – IV – V", "ii – V – I"],
-    usageNotes: [
-      "E is a power-key for guitar (open E string), especially for rock and blues.",
-    ],
-    instrumentTips: {
-      piano:
-        "Use strong left-hand octaves on E and B for rock/gospel vibes.",
-      guitar:
-        "Leverage the low E string for riffs; classic blues boxes live here.",
-      ukulele:
-        "Consider capo tricks or partial chords if full E-barre voicings are annoying.",
-    },
-  },
-  B: {
-    name: "B",
-    majorKey: "B Major",
-    relativeMinor: "G# minor",
-    accidentals: "5 sharps (F#, C#, G#, D#, A#)",
-    scale: ["B", "C#", "D#", "E", "F#", "G#", "A#"],
-    diatonicChords: [
-      { degree: "I", quality: "Maj7", symbol: "Bmaj7", function: "Tonic" },
-      { degree: "ii", quality: "min7", symbol: "C#m7", function: "Pre-dominant" },
-      { degree: "iii", quality: "min7", symbol: "D#m7", function: "Tonic color" },
-      { degree: "IV", quality: "Maj7", symbol: "Emaj7", function: "Subdominant" },
-      { degree: "V", quality: "Dom7", symbol: "F#7", function: "Dominant" },
-      { degree: "vi", quality: "min7", symbol: "G#m7", function: "Relative minor" },
-      { degree: "vii°", quality: "m7♭5", symbol: "A#m7♭5", function: "Leading-tone" },
-    ],
-    commonProgressions: ["ii – V – I", "I – vi – IV – V"],
-    usageNotes: [
-      "Pain in the ass to read, but heavily used when instruments are tuned down or in certain pop keys.",
-    ],
-    instrumentTips: {
-      piano:
-        "Use black-key shapes to your advantage; B major can actually feel comfy under the hand.",
-      guitar:
-        "Use capo and think in A or G to avoid living in bar-chord hell.",
-      ukulele:
-        "Small, movable triads again – don’t feel obligated to use full six-note shapes.",
-    },
-  },
-  "F#": {
-    name: "F#",
-    majorKey: "F# Major",
-    relativeMinor: "D# minor",
-    accidentals: "6 sharps (F#, C#, G#, D#, A#, E#)",
-    scale: ["F#", "G#", "A#", "B", "C#", "D#", "E#"],
-    diatonicChords: [
-      { degree: "I", quality: "Maj7", symbol: "F#maj7", function: "Tonic" },
-      { degree: "ii", quality: "min7", symbol: "G#m7", function: "Pre-dominant" },
-      { degree: "iii", quality: "min7", symbol: "A#m7", function: "Tonic color" },
-      { degree: "IV", quality: "Maj7", symbol: "Bmaj7", function: "Subdominant" },
-      { degree: "V", quality: "Dom7", symbol: "C#7", function: "Dominant" },
-      { degree: "vi", quality: "min7", symbol: "D#m7", function: "Relative minor" },
-      { degree: "vii°", quality: "m7♭5", symbol: "E#m7♭5", function: "Leading-tone" },
-    ],
-    commonProgressions: ["ii – V – I"],
-    usageNotes: [
-      "Enharmonic with Gb; used in keys with lots of sharps or for certain modulations.",
-    ],
-    instrumentTips: {
-      piano:
-        "Similar ergonomic feel to B major – heavy on black keys, which can be nice.",
-      guitar:
-        "Capo 2 and think in E or D to make your life easier.",
-      ukulele:
-        "Again, triad fragments > huge grips; keep it playable.",
-    },
-  },
-  Db: {
-    name: "Db",
-    majorKey: "Db Major",
-    relativeMinor: "Bb minor",
-    accidentals: "5 flats (Bb, Eb, Ab, Db, Gb)",
-    scale: ["Db", "Eb", "F", "Gb", "Ab", "Bb", "C"],
-    diatonicChords: [
-      { degree: "I", quality: "Maj7", symbol: "Dbmaj7", function: "Tonic" },
-      { degree: "ii", quality: "min7", symbol: "Ebm7", function: "Pre-dominant" },
-      { degree: "iii", quality: "min7", symbol: "Fm7", function: "Tonic color" },
-      { degree: "IV", quality: "Maj7", symbol: "Gbmaj7", function: "Subdominant" },
-      { degree: "V", quality: "Dom7", symbol: "Ab7", function: "Dominant" },
-      { degree: "vi", quality: "min7", symbol: "Bbm7", function: "Relative minor" },
-      { degree: "vii°", quality: "m7♭5", symbol: "Cm7♭5", function: "Leading-tone" },
-    ],
-    commonProgressions: ["ii – V – I", "I – vi – ii – V"],
-    usageNotes: [
-      "Db is smooth as hell – great for lush, cinematic, R&B, or City Pop type harmony.",
-    ],
-    instrumentTips: {
-      piano:
-        "Lots of black keys – chord planing (moving shapes up/down) feels very natural here.",
-      guitar:
-        "Capo 1 and play in C, or capo 4 and play in A; no need to brute-force Db voicings all day.",
-      ukulele:
-        "Db, Gb, Ab, and Bbm can be broken into small grips; keep it economical.",
-    },
-  },
-};
+// --- CHORD SHAPE DB (same style as InstrumentVisualizer) ---
 
-const CircleOfFifthsTool: React.FC = () => {
-  const [selectedKey, setSelectedKey] = useState<string>("C");
+const CHORD_SHAPES = {
+  Maj7: {
+    pianoIntervals: [0, 4, 7, 11],
+    guitarFrets: [-1, 3, 2, 0, 0, 0], // generic maj7 voicing
+    ukeFrets: [0, 0, 0, 2],
+  },
+  min7: {
+    pianoIntervals: [0, 3, 7, 10],
+    guitarFrets: [-1, 1, 3, 1, 3, 1],
+    ukeFrets: [2, 0, 1, 1],
+  },
+  Dom7: {
+    pianoIntervals: [0, 4, 7, 10],
+    guitarFrets: [3, 2, 0, 0, 0, 1],
+    ukeFrets: [0, 2, 1, 2],
+  },
+  "6/9": {
+    pianoIntervals: [0, 4, 7, 9, 14],
+    guitarFrets: [-1, 3, 2, 2, 3, 3],
+    ukeFrets: [0, 2, 2, 2],
+  },
+  min9: {
+    pianoIntervals: [0, 3, 7, 10, 14],
+    guitarFrets: [1, 3, 1, 1, 1, 1],
+    ukeFrets: [0, 2, 0, 2],
+  },
+  "11th": {
+    pianoIntervals: [0, 7, 10, 14, 17],
+    guitarFrets: [-1, 3, 3, 3, 3, 3],
+    ukeFrets: [0, 0, 1, 0],
+  },
+} as const;
 
-  const data = KEY_DATA[selectedKey];
+type ChordShapeKey = keyof typeof CHORD_SHAPES;
 
-  const handleKeyClick = (key: string) => {
-    if (KEY_DATA[key]) {
-      setSelectedKey(key);
-    }
-  };
+interface CircleChord {
+  degree: string;      // I, IV, V
+  symbol: string;      // Imaj7, IVmaj7, V7
+  shape: ChordShapeKey;
+  note: string;        // explanation text
+}
+
+// Functional snapshot for the active major key
+const getMajorFunctionalChords = (key: CircleKey): CircleChord[] => [
+  {
+    degree: "I",
+    symbol: "Imaj7",
+    shape: "Maj7",
+    note: `Tonic chord of ${key.name} major. This is "home" – start and end here to feel resolved.`,
+  },
+  {
+    degree: "IV",
+    symbol: "IVmaj7",
+    shape: "Maj7",
+    note: `Subdominant in ${key.name} major. Moves you away from home and sets up the V chord.`,
+  },
+  {
+    degree: "V",
+    symbol: "V7",
+    shape: "Dom7",
+    note: `Dominant of ${key.name} major. Wants to resolve back to I. Classic tension–release.`,
+  },
+];
+
+const getMinorFunctionalChords = (key: CircleKey): CircleChord[] => [
+  {
+    degree: "i",
+    symbol: "i7",
+    shape: "min7",
+    note: `Tonic of ${key.relativeMinor}. Same pitch collection as ${key.name} major, but centered on the minor root.`,
+  },
+  {
+    degree: "iv",
+    symbol: "iv7",
+    shape: "min7",
+    note: `Subdominant in the relative minor. Great for deepening the melancholy without leaving the key.`,
+  },
+  {
+    degree: "V",
+    symbol: "V7",
+    shape: "Dom7",
+    note: `Dominant that often borrows from harmonic minor. Strong pull back to i, even though the notes bend the shared scale a bit.`,
+  },
+];
+
+// --- VISUAL SUBCOMPONENTS (piano + fretboards) ---
+
+const KeyboardDiagram: React.FC<{ intervals: number[] }> = ({ intervals }) => {
+  const active = useMemo(
+    () => intervals.map(v => ((v % 12) + 12) % 12),
+    [intervals]
+  );
+
+  const whiteNotes = [0, 2, 4, 5, 7, 9, 11];
+  const blackMap = [
+    { note: 1, between: 0 },
+    { note: 3, between: 1 },
+    { note: 6, between: 3 },
+    { note: 8, between: 4 },
+    { note: 10, between: 5 },
+  ];
 
   return (
-    <div className="w-full max-w-6xl mx-auto">
-      <div className="mb-8 flex items-center gap-3">
-        <div className="p-2 rounded-lg bg-indigo-600/20 border border-indigo-500/40">
-          <Compass className="h-6 w-6 text-indigo-300" />
-        </div>
-        <div>
-          <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white">
-            Circle of Fifths Lab
-          </h1>
-          <p className="text-sm md:text-base text-slate-400 mt-1">
-            Click around the wheel to explore keys, relative minors, diatonic
-            chords, and how they map to your instruments.
-          </p>
-        </div>
+    <div className="relative w-full max-w-xs mx-auto h-24 select-none">
+      {/* White keys */}
+      <div className="absolute inset-0 flex">
+        {whiteNotes.map((note, idx) => {
+          const isActive = active.includes(note);
+          return (
+            <div
+              key={idx}
+              className={`flex-1 border border-slate-500/60 rounded-b-md mx-[1px] transition-colors ${
+                isActive
+                  ? "bg-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.8)]"
+                  : "bg-white"
+              }`}
+            />
+          );
+        })}
       </div>
 
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] items-center">
-        {/* WHEEL */}
-        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 md:p-8 shadow-xl">
-          <div className="flex flex-col items-center gap-4">
-            <div className="relative w-full max-w-[420px] aspect-square">
-              <svg
-                viewBox="0 0 300 300"
-                className="w-full h-full drop-shadow-[0_0_40px_rgba(129,140,248,0.35)]"
-              >
-                {/* background ring */}
-                <defs>
-                  <radialGradient id="c-of-outer" cx="50%" cy="50%" r="70%">
-                    <stop offset="0%" stopColor="#020617" />
-                    <stop offset="60%" stopColor="#0f172a" />
-                    <stop offset="100%" stopColor="#020617" />
-                  </radialGradient>
-                </defs>
-                <circle
-                  cx={150}
-                  cy={150}
-                  r={120}
-                  fill="url(#c-of-outer)"
-                  stroke="#1e293b"
-                  strokeWidth={2}
-                />
-
-                {/* major keys around the circle */}
-                {KEY_ORDER.map((key, i) => {
-                  const angle = (i / KEY_ORDER.length) * Math.PI * 2 - Math.PI / 2;
-                  const radius = 100;
-                  const x = 150 + radius * Math.cos(angle);
-                  const y = 150 + radius * Math.sin(angle);
-
-                  const isActive = key === selectedKey;
-
-                  // slightly smaller radius for hit zone circle
-                  const hitX = 150 + (radius - 6) * Math.cos(angle);
-                  const hitY = 150 + (radius - 6) * Math.sin(angle);
-
-                  return (
-                    <g
-                      key={key}
-                      onClick={() => handleKeyClick(key)}
-                      className="cursor-pointer"
-                    >
-                      {/* hit / highlight circle */}
-                      <circle
-                        cx={hitX}
-                        cy={hitY}
-                        r={18}
-                        fill={isActive ? "#4f46e5" : "transparent"}
-                        stroke={isActive ? "#a5b4fc" : "#475569"}
-                        strokeWidth={isActive ? 2.2 : 1}
-                        opacity={isActive ? 0.95 : 0.7}
-                      />
-                      {/* label */}
-                      <text
-                        x={x}
-                        y={y}
-                        textAnchor="middle"
-                        dominantBaseline="middle"
-                        fill={isActive ? "#e5e7eb" : "#cbd5f5"}
-                        fontSize={isActive ? 16 : 13}
-                        fontWeight={isActive ? 700 : 500}
-                      >
-                        {key}
-                      </text>
-                    </g>
-                  );
-                })}
-
-                {/* center display */}
-                <circle cx={150} cy={150} r={56} fill="#020617" stroke="#1f2937" />
-                <text
-                  x={150}
-                  y={138}
-                  textAnchor="middle"
-                  className="font-bold"
-                  fill="#e5e7eb"
-                  fontSize={20}
-                >
-                  {data.name}
-                </text>
-                <text
-                  x={150}
-                  y={160}
-                  textAnchor="middle"
-                  fill="#a5b4fc"
-                  fontSize={11}
-                >
-                  {data.majorKey}
-                </text>
-                <text
-                  x={150}
-                  y={178}
-                  textAnchor="middle"
-                  fill="#f97316"
-                  fontSize={10}
-                >
-                  Rel. minor: {data.relativeMinor}
-                </text>
-              </svg>
-
-              <div className="absolute inset-x-0 -bottom-8 flex justify-center">
-                <span className="px-3 py-1 rounded-full bg-slate-900/80 border border-slate-700 text-[10px] uppercase tracking-[0.2em] text-slate-400">
-                  Moving clockwise adds sharps • counter-clockwise adds flats
-                </span>
-              </div>
+      {/* Black keys */}
+      <div className="absolute inset-0 flex pointer-events-none">
+        {blackMap.map(({ note, between }, idx) => {
+          const isActive = active.includes(note);
+          const left =
+            ((between + 1) / whiteNotes.length) * 100 -
+            100 / (whiteNotes.length * 4);
+          return (
+            <div
+              key={idx}
+              className="absolute top-0 h-[60%] w-[10%]"
+              style={{ left: `${left}%` }}
+            >
+              <div
+                className={`w-full h-full rounded-b-md border border-slate-900 transition-colors ${
+                  isActive
+                    ? "bg-emerald-700 shadow-[0_0_18px_rgba(16,185,129,0.9)]"
+                    : "bg-slate-900"
+                }`}
+              />
             </div>
-
-            {/* key pills for quick selection */}
-            <div className="mt-10 flex flex-wrap justify-center gap-2">
-              {KEY_ORDER.map((key) => {
-                const active = key === selectedKey;
-                return (
-                  <button
-                    key={key}
-                    onClick={() => handleKeyClick(key)}
-                    className={`px-3 py-1 rounded-full text-xs font-mono border transition-all ${
-                      active
-                        ? "bg-indigo-600 text-white border-indigo-400 shadow"
-                        : "bg-slate-900 text-slate-300 border-slate-700 hover:bg-slate-800 hover:text-white"
-                    }`}
-                  >
-                    {key}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-
-        {/* INFO PANEL */}
-        <div className="space-y-5">
-          {/* explanation */}
-          <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-4 md:p-5">
-            <div className="flex items-start gap-3">
-              <div className="mt-0.5">
-                <Info className="h-4 w-4 text-indigo-400" />
-              </div>
-              <div>
-                <h2 className="text-sm font-semibold text-slate-100 mb-1.5">
-                  How to use this wheel
-                </h2>
-                <p className="text-xs md:text-sm text-slate-400 leading-relaxed">
-                  The Circle of Fifths shows which keys are harmonically close,
-                  which chords live inside a key, and where the relative minor
-                  sits. Click any key on the wheel (or the pills) to pull diatonic
-                  chords and writing ideas in that key.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* key summary */}
-          <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-4 md:p-5 space-y-3">
-            <div className="flex justify-between items-center gap-2">
-              <div>
-                <p className="text-[11px] uppercase tracking-wide text-slate-500">
-                  Selected key
-                </p>
-                <p className="text-lg font-semibold text-slate-100">
-                  {data.majorKey}
-                  <span className="ml-2 text-xs text-orange-400">
-                    ({data.relativeMinor})
-                  </span>
-                </p>
-              </div>
-              <span className="px-2 py-1 rounded-full bg-slate-800 text-[10px] text-slate-300 border border-slate-700">
-                {data.accidentals}
-              </span>
-            </div>
-
-            <div>
-              <p className="text-[11px] uppercase tracking-wide text-slate-500 mb-1">
-                Scale degrees
-              </p>
-              <div className="flex flex-wrap gap-1.5 text-[11px] font-mono">
-                {data.scale.map((note, idx) => (
-                  <span
-                    key={note}
-                    className="px-2 py-1 rounded bg-slate-800 border border-slate-700 text-slate-200"
-                  >
-                    {idx + 1}. {note}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* diatonic chords */}
-          <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-4 md:p-5">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-slate-100">
-                Diatonic chord family
-              </h3>
-              <span className="text-[10px] text-slate-500 uppercase tracking-wide">
-                I – ii – iii – IV – V – vi – vii°
-              </span>
-            </div>
-            <div className="space-y-1.5 text-[11px] md:text-xs font-mono">
-              {data.diatonicChords.map((ch) => (
-                <div
-                  key={ch.degree}
-                  className="flex items-center justify-between gap-2 rounded bg-slate-900/80 border border-slate-800 px-2 py-1.5"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="px-1.5 py-0.5 rounded bg-slate-800 text-slate-200">
-                      {ch.degree}
-                    </span>
-                    <span className="text-emerald-300">{ch.symbol}</span>
-                    <span className="text-slate-500">{ch.quality}</span>
-                  </div>
-                  <span className="text-[10px] text-slate-500">
-                    {ch.function}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* progressions + instruments */}
-          <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-4 md:p-5 space-y-3">
-            <div>
-              <p className="text-[11px] uppercase tracking-wide text-slate-500 mb-1">
-                Common progressions
-              </p>
-              <ul className="text-xs text-slate-300 space-y-1 list-disc pl-4">
-                {data.commonProgressions.map((p) => (
-                  <li key={p}>{p}</li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-[11px] md:text-xs text-slate-300">
-              <div className="flex flex-col gap-1">
-                <div className="flex items-center gap-1 text-slate-400 mb-0.5">
-                  <Piano className="h-3 w-3" />
-                  <span className="font-semibold text-xs">Piano</span>
-                </div>
-                <p className="text-slate-300 leading-snug">
-                  {data.instrumentTips.piano}
-                </p>
-              </div>
-              <div className="flex flex-col gap-1">
-                <div className="flex items-center gap-1 text-slate-400 mb-0.5">
-                  <Guitar className="h-3 w-3" />
-                  <span className="font-semibold text-xs">Guitar</span>
-                </div>
-                <p className="text-slate-300 leading-snug">
-                  {data.instrumentTips.guitar}
-                </p>
-              </div>
-              <div className="flex flex-col gap-1">
-                <div className="flex items-center gap-1 text-slate-400 mb-0.5">
-                  <Radio className="h-3 w-3" />
-                  <span className="font-semibold text-xs">Ukulele</span>
-                </div>
-                <p className="text-slate-300 leading-snug">
-                  {data.instrumentTips.ukulele}
-                </p>
-              </div>
-            </div>
-
-            {data.usageNotes.length > 0 && (
-              <div className="pt-1 border-t border-slate-800 mt-2">
-                <ul className="text-[11px] text-slate-400 space-y-1 list-disc pl-4">
-                  {data.usageNotes.map((n) => (
-                    <li key={n}>{n}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        </div>
+          );
+        })}
       </div>
     </div>
   );
 };
 
-export { CircleOfFifthsTool };
+const GuitarFretboard: React.FC<{ frets: number[] }> = ({ frets }) => {
+  const numericFrets = frets.filter(f => f > 0);
+  const minFret = numericFrets.length ? Math.min(...numericFrets) : 1;
+  const startFret = Math.max(1, minFret);
+  const endFret = startFret + 3;
+
+  return (
+    <div className="w-full max-w-xs mx-auto">
+      <div className="flex flex-col gap-1">
+        {frets.map((fret, stringIndex) => (
+          <div
+            key={stringIndex}
+            className="flex items-center h-6 text-[11px] text-slate-400"
+          >
+            <div className="w-5 flex justify-center items-center">
+              {fret === -1 && <span className="text-rose-400">X</span>}
+              {fret === 0 && <span className="text-slate-200">O</span>}
+            </div>
+            <div className="flex-1 flex">
+              {Array.from(
+                { length: endFret - startFret + 1 },
+                (_, i) => startFret + i
+              ).map(fretNumber => {
+                const isActive = fret === fretNumber;
+                return (
+                  <div
+                    key={fretNumber}
+                    className="flex-1 border-b border-slate-600 relative"
+                  >
+                    {stringIndex === 0 && (
+                      <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-[9px] text-slate-500">
+                        {fretNumber}
+                      </span>
+                    )}
+                    {isActive && (
+                      <div className="w-3 h-3 rounded-full bg-amber-400 shadow-lg absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const UkeFretboard: React.FC<{ frets: number[] }> = ({ frets }) => {
+  const numericFrets = frets.filter(f => f > 0);
+  const minFret = numericFrets.length ? Math.min(...numericFrets) : 1;
+  const startFret = Math.max(1, minFret);
+  const endFret = startFret + 3;
+
+  return (
+    <div className="w-full max-w-xs mx-auto">
+      <div className="flex flex-col gap-1">
+        {frets.map((fret, stringIndex) => (
+          <div
+            key={stringIndex}
+            className="flex items-center h-6 text-[11px] text-slate-400"
+          >
+            <div className="w-5 flex justify-center items-center">
+              {fret === -1 && <span className="text-rose-400">X</span>}
+              {fret === 0 && <span className="text-slate-200">O</span>}
+            </div>
+            <div className="flex-1 flex">
+              {Array.from(
+                { length: endFret - startFret + 1 },
+                (_, i) => startFret + i
+              ).map(fretNumber => {
+                const isActive = fret === fretNumber;
+                return (
+                  <div
+                    key={fretNumber}
+                    className="flex-1 border-b border-slate-600 relative"
+                  >
+                    {stringIndex === 0 && (
+                      <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-[9px] text-slate-500">
+                        {fretNumber}
+                      </span>
+                    )}
+                    {isActive && (
+                      <div className="w-3 h-3 rounded-full bg-emerald-300 shadow-lg absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// --- MAIN COMPONENT ---
+
+export const CircleOfFifthsTool: React.FC = () => {
+  const [activeKey, setActiveKey] = useState<CircleKey>(CIRCLE_KEYS[0]);
+  const [activeChordIndex, setActiveChordIndex] = useState<number>(0);
+  const [viewMode, setViewMode] = useState<"major" | "minor">("major");
+
+  const chords: CircleChord[] = useMemo(
+    () =>
+      viewMode === "major"
+        ? getMajorFunctionalChords(activeKey)
+        : getMinorFunctionalChords(activeKey),
+    [activeKey, viewMode]
+  );
+
+  const activeChord = chords[activeChordIndex] ?? chords[0];
+  const shape = CHORD_SHAPES[activeChord.shape];
+
+  return (
+    <div className="max-w-6xl mx-auto space-y-8">
+      <header className="mb-4">
+        <div className="inline-flex items-center gap-2 text-xs font-mono text-slate-500 mb-3">
+          <span>codex</span>
+          <span className="opacity-50">/</span>
+          <span>circle-of-fifths</span>
+        </div>
+        <h1 className="text-3xl md:text-4xl font-black text-white tracking-tight mb-3 flex items-center gap-3">
+          <Disc className="h-7 w-7 text-amber-400" />
+          Circle of Fifths Lab
+        </h1>
+        <p className="text-slate-400 max-w-3xl text-sm md:text-base leading-relaxed">
+          The Circle of Fifths is your{" "}
+          <span className="text-slate-200">map of key relationships</span>.  
+          Moving clockwise adds sharps (brighter, more tension); counter-clockwise adds flats
+          (warmer, darker). Adjacent keys share most of their notes, which is why they’re perfect
+          for <span className="text-indigo-300">modulations, secondary dominants, and borrowed chords</span>.
+        </p>
+      </header>
+
+      <div className="grid lg:grid-cols-2 gap-10 items-center">
+        {/* BIGGER WHEEL */}
+        <div className="flex justify-center">
+          <div className="relative w-80 h-80 md:w-[26rem] md:h-[26rem] rounded-full bg-slate-900 border border-slate-700 shadow-xl flex items-center justify-center">
+            <div className="absolute inset-6 rounded-full bg-slate-950/80 border border-slate-800" />
+
+            {/* Active center badge */}
+            <div className="relative z-10 w-40 h-40 rounded-full bg-gradient-to-br from-amber-500/80 to-pink-500/80 flex flex-col items-center justify-center text-slate-950 shadow-[0_0_40px_rgba(251,191,36,0.5)]">
+              <div className="text-[11px] font-mono uppercase mb-1 text-slate-900/80">
+                Active Key
+              </div>
+              <div className="text-3xl font-black tracking-tight">
+                {activeKey.name}
+              </div>
+              <div className="text-[11px] font-mono mt-1 text-slate-900/80">
+                Rel: {activeKey.relativeMinor}
+              </div>
+            </div>
+
+            {/* Major labels */}
+            {CIRCLE_KEYS.map((key, index) => {
+              const angleDeg = index * (360 / CIRCLE_KEYS.length);
+              const isActive = key.name === activeKey.name;
+              return (
+                <button
+                  key={key.name}
+                  onClick={() => {
+                    setActiveKey(key);
+                    setActiveChordIndex(0);
+                  }}
+                  className={`
+                    absolute left-1/2 top-1/2 origin-center 
+                    -translate-x-1/2 -translate-y-1/2
+                    text-xs font-mono px-2 py-1 rounded-full border
+                    transition-all duration-200
+                    ${
+                      isActive
+                        ? "bg-amber-400 text-slate-900 border-amber-200 shadow-lg scale-110"
+                        : "bg-slate-900/90 text-slate-200 border-slate-700 hover:bg-slate-800 hover:border-slate-500"
+                    }
+                  `}
+                  style={{
+                    transform: `rotate(${angleDeg}deg) translateY(-8.4rem) rotate(${-angleDeg}deg)`,
+                  }}
+                >
+                  {key.name}
+                </button>
+              );
+            })}
+
+            {/* Minor ring labels */}
+            {CIRCLE_KEYS.map((key, index) => {
+              const angleDeg = index * (360 / CIRCLE_KEYS.length) + 15;
+              const isActive = key.name === activeKey.name;
+              return (
+                <div
+                  key={`${key.name}-minor`}
+                  className={`
+                    absolute left-1/2 top-1/2 origin-center 
+                    -translate-x-1/2 -translate-y-1/2
+                    text-[9px] font-mono px-1.5 py-0.5 rounded-full
+                    ${
+                      isActive
+                        ? "bg-indigo-500 text-white"
+                        : "bg-slate-900/70 text-slate-400"
+                    }
+                  `}
+                  style={{
+                    transform: `rotate(${angleDeg}deg) translateY(-5rem) rotate(${-angleDeg}deg)`,
+                  }}
+                >
+                  {key.relativeMinor}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* THEORY + CHORD LAB */}
+        <div className="space-y-6">
+          <section className="bg-slate-900/70 border border-slate-800 rounded-xl p-5 space-y-3">
+            <div className="flex items-center gap-2 text-sm font-semibold text-slate-100">
+              <Info className="h-4 w-4 text-indigo-400" />
+              How to actually use this thing
+            </div>
+            <ul className="text-sm text-slate-300 space-y-2 leading-relaxed list-disc pl-5">
+              <li>
+                <span className="font-semibold text-slate-100">
+                  Pick a home key
+                </span>{" "}
+                (center of gravity) — that’s your song’s default key. Right now
+                you’re in{" "}
+                <span className="text-amber-300 font-mono">
+                  {activeKey.name} major / {activeKey.relativeMinor} minor
+                </span>
+                .
+              </li>
+              <li>
+                <span className="font-semibold text-slate-100">
+                  Move to neighbors
+                </span>{" "}
+                (one step left/right) for friendly modulations and borrowed
+                chords with minimal note changes.
+              </li>
+              <li>
+                Use the{" "}
+                <span className="text-indigo-300">relative minor</span> to flip
+                the emotional tone without changing the pitch set.
+              </li>
+              <li>
+                Opposite keys on the circle feel like{" "}
+                <span className="text-rose-300">hard cuts</span> – perfect for
+                big dramatic moments or “second half of the song goes wild.”
+              </li>
+            </ul>
+          </section>
+
+          {/* CHORD VISUALS FOR ACTIVE KEY */}
+          <section className="bg-slate-900/70 border border-slate-800 rounded-xl p-5 space-y-4">
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-sm font-semibold text-slate-100 flex items-center gap-2">
+                <Piano className="h-4 w-4 text-emerald-400" />
+                Functional chord pack in this key
+              </h2>
+              <div className="flex text-[11px] bg-slate-950/80 rounded-full border border-slate-700 overflow-hidden">
+                <button
+                  onClick={() => {
+                    setViewMode("major");
+                    setActiveChordIndex(0);
+                  }}
+                  className={`px-3 py-1 ${
+                    viewMode === "major"
+                      ? "bg-emerald-500/30 text-emerald-100"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  {activeKey.name} Major
+                </button>
+                <button
+                  onClick={() => {
+                    setViewMode("minor");
+                    setActiveChordIndex(0);
+                  }}
+                  className={`px-3 py-1 ${
+                    viewMode === "minor"
+                      ? "bg-indigo-500/30 text-indigo-100"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  {activeKey.relativeMinor} Minor
+                </button>
+              </div>
+            </div>
+
+            {/* Flow buttons */}
+            <div className="flex flex-wrap gap-2 items-center text-xs font-mono text-slate-400">
+              <span className="uppercase tracking-wide text-slate-500">
+                Flow:
+              </span>
+              {chords.map((chord, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setActiveChordIndex(idx)}
+                  className={`px-2 py-1 rounded-md border flex items-center gap-1 transition-colors ${
+                    idx === activeChordIndex
+                      ? "bg-emerald-500/20 border-emerald-400 text-emerald-100"
+                      : "bg-slate-900 border-slate-700 hover:border-slate-500 hover:text-slate-100"
+                  }`}
+                >
+                  <span>{chord.degree}</span>
+                  <span className="text-[10px] text-slate-500">
+                    ({chord.symbol})
+                  </span>
+                  {idx < chords.length - 1 && (
+                    <ChevronRight className="h-3 w-3 text-slate-500" />
+                  )}
+                </button>
+              ))}
+            </div>
+
+            {/* Active chord explanation */}
+            <div className="bg-slate-950/80 border border-slate-800 rounded-lg p-4 text-xs md:text-sm mb-2">
+              <div className="font-mono text-slate-100 mb-1">
+                {viewMode === "major" ? (
+                  <>
+                    {activeKey.name} major •{" "}
+                    <span className="text-emerald-300">
+                      {activeChord.degree} ({activeChord.symbol})
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    {activeKey.relativeMinor} minor •{" "}
+                    <span className="text-indigo-300">
+                      {activeChord.degree} ({activeChord.symbol})
+                    </span>
+                  </>
+                )}
+              </div>
+              <p className="text-slate-400 leading-relaxed">
+                {activeChord.note}
+              </p>
+            </div>
+
+            {/* Instrument visuals */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Piano */}
+              <div className="bg-slate-950/80 border border-slate-800 rounded-lg p-4 flex flex-col gap-3">
+                <div className="flex items-center gap-2 text-slate-200 text-sm">
+                  <Piano className="h-4 w-4 text-emerald-400" />
+                  Piano voicing
+                </div>
+                <KeyboardDiagram intervals={shape.pianoIntervals} />
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Intervals from root:{" "}
+                  <span className="font-mono">
+                    {shape.pianoIntervals.join(", ")} semitones
+                  </span>
+                  . Use this as a shell and add 9/13 on top.
+                </p>
+              </div>
+
+              {/* Guitar */}
+              <div className="bg-slate-950/80 border border-slate-800 rounded-lg p-4 flex flex-col gap-3">
+                <div className="flex items-center gap-2 text-slate-200 text-sm">
+                  <Guitar className="h-4 w-4 text-amber-300" />
+                  Guitar shape
+                </div>
+                <GuitarFretboard frets={shape.guitarFrets} />
+                <p className="text-[11px] text-slate-400 mt-1">
+                  <span className="font-mono">X</span> = muted,{" "}
+                  <span className="font-mono">O</span> = open string. Dots show
+                  a compact grip usable in most keys via barre.
+                </p>
+              </div>
+
+              {/* Ukulele */}
+              <div className="bg-slate-950/80 border border-slate-800 rounded-lg p-4 flex flex-col gap-3">
+                <div className="flex items-center gap-2 text-slate-200 text-sm">
+                  <Music2 className="h-4 w-4 text-pink-300" />
+                  Ukulele shape
+                </div>
+                <UkeFretboard frets={shape.ukeFrets} />
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Tuned to <span className="font-mono">G–C–E–A</span>. Treat
+                  these as movable shapes when you start exploring transposition.
+                </p>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+  );
+};

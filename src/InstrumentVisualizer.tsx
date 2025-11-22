@@ -1,183 +1,164 @@
-import React, { useState } from "react";
-import { Piano, Guitar, Music } from "lucide-react";
+import React, { useMemo, useState } from "react";
+import { Piano, Guitar, Music2, ChevronRight } from "lucide-react";
 import type { Genre, ProgressionChord } from "./App";
 
-/* ---------- THEORY MAPPINGS ---------- */
-
-const NOTE_PC: Record<string, number> = {
-  C: 0,
-  "C#": 1,
-  Db: 1,
-  D: 2,
-  "D#": 3,
-  Eb: 3,
-  E: 4,
-  Fb: 4,
-  F: 5,
-  "F#": 6,
-  Gb: 6,
-  G: 7,
-  "G#": 8,
-  Ab: 8,
-  A: 9,
-  "A#": 10,
-  Bb: 10,
-  B: 11,
-  Cb: 11,
-};
-
-type ChordShapeName =
-  | "Maj7"
-  | "min7"
-  | "Dom7"
-  | "Dom9"
-  | "min9"
-  | "6/9"
-  | "m7b5"
-  | "dim7"
-  | "Sus4"
-  | "Maj6"
-  | "11th";
-
-interface ChordShape {
-  pianoIntervals: number[]; // intervals from root, in semitones
-  guitarFrets: number[]; // 6-string EADGBE, -1 = mute, 0 = open
-  ukeFrets: number[]; // 4-string GCEA, -1 = mute, 0 = open
+interface InstrumentVisualizerProps {
+  genre: Genre;
 }
 
-// Basic voicing dictionary. You can refine these with your preferred grips.
-const CHORD_SHAPES: Record<ChordShapeName, ChordShape> = {
+// --- chord shape database ---
+
+const CHORD_SHAPES = {
   Maj7: {
     pianoIntervals: [0, 4, 7, 11],
-    guitarFrets: [-1, 3, 2, 0, 0, 0], // E-shape Maj7 (Cmaj7 at 3rd fret)
-    ukeFrets: [0, 0, 0, 2], // simple movable maj7
+    guitarFrets: [-1, 3, 2, 0, 0, 0], // example Cmaj7-ish voicing
+    ukeFrets: [0, 0, 0, 2],
   },
   min7: {
     pianoIntervals: [0, 3, 7, 10],
-    guitarFrets: [-1, 3, 1, 3, 1, 3], // generic jazzy min7
-    ukeFrets: [0, 3, 3, 3],
+    guitarFrets: [-1, 1, 3, 1, 3, 1], // Dm7 shape-ish
+    ukeFrets: [2, 0, 1, 1],
   },
   Dom7: {
     pianoIntervals: [0, 4, 7, 10],
-    guitarFrets: [-1, 3, 2, 0, 0, 0], // C7-type voicing
-    ukeFrets: [0, 0, 1, 0],
+    guitarFrets: [3, 2, 0, 0, 0, 1], // G7 style
+    ukeFrets: [0, 2, 1, 2],
   },
   Dom9: {
     pianoIntervals: [0, 4, 7, 10, 14],
-    guitarFrets: [-1, 3, 2, 3, 3, 3], // C9 grip
+    guitarFrets: [3, 2, 0, 2, 3, 0], // G9-ish
     ukeFrets: [0, 2, 1, 2],
   },
   min9: {
     pianoIntervals: [0, 3, 7, 10, 14],
-    guitarFrets: [-1, 3, 1, 3, 3, 3],
+    guitarFrets: [1, 3, 1, 1, 1, 1], // Fm9 type grip
     ukeFrets: [0, 2, 0, 2],
   },
   "6/9": {
     pianoIntervals: [0, 4, 7, 9, 14],
-    guitarFrets: [-1, 3, 2, 2, 3, -1],
+    guitarFrets: [-1, 3, 2, 2, 3, 3], // C6/9-ish
     ukeFrets: [0, 2, 2, 2],
   },
   m7b5: {
     pianoIntervals: [0, 3, 6, 10],
-    guitarFrets: [-1, 3, 4, 3, 4, -1],
-    ukeFrets: [0, 1, 0, 1],
+    guitarFrets: [1, 2, 1, 2, 1, 1], // Bm7b5 type
+    ukeFrets: [1, 1, 0, 1],
   },
   dim7: {
     pianoIntervals: [0, 3, 6, 9],
-    guitarFrets: [-1, 3, 4, 2, 4, -1],
+    guitarFrets: [-1, 1, 2, 0, 2, 0], // diminished shape
     ukeFrets: [2, 3, 2, 3],
   },
   Sus4: {
     pianoIntervals: [0, 5, 7],
-    guitarFrets: [3, 5, 5, 5, 3, 3],
+    guitarFrets: [3, 3, 5, 5, 3, 3],
     ukeFrets: [0, 2, 3, 3],
   },
   Maj6: {
     pianoIntervals: [0, 4, 7, 9],
     guitarFrets: [-1, 3, 2, 2, 3, -1],
-    ukeFrets: [0, 2, 0, 2],
+    ukeFrets: [2, 2, 1, 2],
   },
   "11th": {
     pianoIntervals: [0, 7, 10, 14, 17],
     guitarFrets: [-1, 3, 3, 3, 3, 3],
     ukeFrets: [0, 0, 1, 0],
   },
+} as const;
+
+type ChordShapeKey = keyof typeof CHORD_SHAPES;
+
+// --- helpers to fall back when no detailed progressionChords ---
+
+const splitProgression = (progression: string): string[] =>
+  progression
+    .split(/[-–→>/]/)
+    .map(p => p.trim())
+    .filter(Boolean);
+
+const buildFallbackChords = (genre: Genre): ProgressionChord[] => {
+  const pieces = splitProgression(genre.progression);
+
+  // Try to make some vaguely sane guesses instead of "no chords"
+  return pieces.map((piece, idx) => {
+    const upper = piece.toUpperCase();
+    let degree = upper;
+    let shape: ChordShapeKey = "Maj7";
+
+    if (/ii|IV|IVM/.test(upper)) shape = "min7";
+    if (/V7|V$/i.test(upper)) shape = "Dom7";
+    if (/m7b5|ø/.test(upper)) shape = "m7b5";
+    if (/DIM|°/.test(upper)) shape = "dim7";
+    if (/9/.test(upper)) shape = "Dom9";
+    if (/6\/9/.test(upper)) shape = "6/9";
+    if (/SUS/.test(upper)) shape = "Sus4";
+
+    return {
+      degree: degree,
+      symbol: piece,
+      shape,
+      note:
+        idx === 0
+          ? "Fallback from raw progression string — add progressionChords to this genre in App.tsx for richer detail."
+          : "Auto-derived from progression text.",
+    };
+  });
 };
 
-function parseRoot(symbol: string): string | null {
-  if (!symbol) return null;
-  const first = symbol[0].toUpperCase();
-  const second = symbol[1];
+// --- visual subcomponents ---
 
-  if (second === "#" || second === "b") {
-    return (first + second) as string;
-  }
-  return first;
-}
+// Piano: one-octave keyboard diagram
+const KeyboardDiagram: React.FC<{ intervals: number[] }> = ({ intervals }) => {
+  const active = useMemo(
+    () => intervals.map(v => ((v % 12) + 12) % 12),
+    [intervals]
+  );
 
-function getPitchClasses(symbol: string, shape: ChordShapeName): number[] {
-  const root = parseRoot(symbol);
-  if (!root || !(root in NOTE_PC)) return [];
-  const rootPc = NOTE_PC[root];
-  const shapeData = CHORD_SHAPES[shape];
-  if (!shapeData) return [];
-  return shapeData.pianoIntervals.map((i) => (rootPc + i) % 12);
-}
-
-interface PianoKeyboardProps {
-  pitchClasses: number[];
-}
-
-const PianoKeyboard: React.FC<PianoKeyboardProps> = ({ pitchClasses }) => {
-  // one visual octave, C–B
-  const keys = [
-    { pc: 0, isBlack: false }, // C
-    { pc: 1, isBlack: true }, // C#
-    { pc: 2, isBlack: false }, // D
-    { pc: 3, isBlack: true }, // D#
-    { pc: 4, isBlack: false }, // E
-    { pc: 5, isBlack: false }, // F
-    { pc: 6, isBlack: true }, // F#
-    { pc: 7, isBlack: false }, // G
-    { pc: 8, isBlack: true }, // G#
-    { pc: 9, isBlack: false }, // A
-    { pc: 10, isBlack: true }, // A#
-    { pc: 11, isBlack: false }, // B
+  const whiteNotes = [0, 2, 4, 5, 7, 9, 11];
+  const blackMap = [
+    { note: 1, between: 0 }, // C# between C(0) & D(2)
+    { note: 3, between: 1 }, // D# between D & E
+    { note: 6, between: 3 }, // F#
+    { note: 8, between: 4 }, // G#
+    { note: 10, between: 5 }, // A#
   ];
-
-  const whiteKeys = keys.filter((k) => !k.isBlack);
-  const blackKeys = keys.filter((k) => k.isBlack);
 
   return (
     <div className="relative w-full max-w-xs mx-auto h-24 select-none">
       {/* White keys */}
       <div className="absolute inset-0 flex">
-        {whiteKeys.map((k, idx) => {
-          const isActive = pitchClasses.includes(k.pc);
+        {whiteNotes.map((note, idx) => {
+          const isActive = active.includes(note);
           return (
             <div
-              key={`w-${idx}`}
-              className={`flex-1 border border-slate-500/70 rounded-b-md mx-[1px] transition-colors duration-200 ${
+              key={note}
+              className={`flex-1 border border-slate-500/60 rounded-b-md mx-[1px] transition-colors ${
                 isActive
-                  ? "bg-indigo-300 shadow-[0_0_12px_rgba(129,140,248,0.8)]"
-                  : "bg-slate-50"
+                  ? "bg-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.8)]"
+                  : "bg-white"
               }`}
             />
           );
         })}
       </div>
+
       {/* Black keys */}
-      <div className="absolute inset-0 flex justify-between px-[8%] pointer-events-none">
-        {blackKeys.map((k, idx) => {
-          const isActive = pitchClasses.includes(k.pc);
+      <div className="absolute inset-0 flex pointer-events-none">
+        {blackMap.map(({ note, between }, idx) => {
+          const isActive = active.includes(note);
+          const left =
+            ((between + 1) / (whiteNotes.length)) * 100 - 100 / (whiteNotes.length * 4);
           return (
             <div
-              key={`b-${idx}`}
-              className="relative flex-1 flex justify-center"
+              key={idx}
+              className="absolute top-0 h-[60%] w-[10%]"
+              style={{ left: `${left}%` }}
             >
               <div
-                className={`w-[55%] h-[60%] rounded-b-md mt-0 shadow-md transition-colors duration-200 ${
-                  isActive ? "bg-indigo-700" : "bg-slate-900"
+                className={`w-full h-full rounded-b-md border border-slate-900 transition-colors ${
+                  isActive
+                    ? "bg-emerald-700 shadow-[0_0_18px_rgba(16,185,129,0.9)]"
+                    : "bg-slate-900"
                 }`}
               />
             </div>
@@ -188,236 +169,214 @@ const PianoKeyboard: React.FC<PianoKeyboardProps> = ({ pitchClasses }) => {
   );
 };
 
-interface FretboardProps {
-  frets: number[]; // length 6 for guitar or 4 for uke
-  tuningLabel: string;
-}
-
-const Fretboard: React.FC<FretboardProps> = ({ frets, tuningLabel }) => {
-  const numStrings = frets.length;
-  const numFrets = 5;
+// 6-string guitar fretboard (4-fret window)
+const GuitarFretboard: React.FC<{ frets: number[] }> = ({ frets }) => {
+  const numericFrets = frets.filter(f => f > 0);
+  const minFret = numericFrets.length ? Math.min(...numericFrets) : 1;
+  const startFret = Math.max(1, minFret);
+  const endFret = startFret + 3;
 
   return (
     <div className="w-full max-w-xs mx-auto">
-      <div className="flex justify-between text-[9px] text-slate-400 mb-1 px-1">
-        <span>{tuningLabel}</span>
-        <span>frets 0–4</span>
-      </div>
-      <div className="relative border border-slate-600 rounded-md bg-slate-900/80 px-2 py-2">
-        {/* Strings (vertical) */}
-        <div className="absolute inset-y-2 left-2 right-2 flex justify-between">
-          {Array.from({ length: numStrings }).map((_, i) => (
-            <div
-              key={i}
-              className="w-[1px] bg-slate-500/70 rounded-full"
-            ></div>
-          ))}
-        </div>
-        {/* Frets (horizontal) */}
-        <div className="flex flex-col gap-1 relative z-10">
-          {Array.from({ length: numFrets }).map((_, fretIdx) => (
-            <div
-              key={fretIdx}
-              className="relative h-6 border-b border-slate-700 last:border-b-0"
-            >
-              {/* markers */}
-              {frets.map((f, stringIdx) => {
-                if (f !== fretIdx) return null;
+      <div className="flex flex-col gap-1">
+        {frets.map((fret, stringIndex) => (
+          <div
+            key={stringIndex}
+            className="flex items-center h-6 text-[11px] text-slate-400"
+          >
+            {/* Nut markers */}
+            <div className="w-5 flex justify-center items-center">
+              {fret === -1 && <span className="text-rose-400">X</span>}
+              {fret === 0 && <span className="text-slate-200">O</span>}
+            </div>
+            {/* Fret grid */}
+            <div className="flex-1 flex">
+              {Array.from(
+                { length: endFret - startFret + 1 },
+                (_, i) => startFret + i
+              ).map(fretNumber => {
+                const isActive = fret === fretNumber;
                 return (
                   <div
-                    key={`${stringIdx}-${fretIdx}`}
-                    className="absolute w-3 h-3 rounded-full bg-amber-400 shadow-md -translate-x-1/2 -translate-y-1/2"
-                    style={{
-                      left: `${
-                        (stringIdx / (numStrings - 1 || 1)) * 100
-                      }%`,
-                      top: "50%",
-                    }}
-                  />
+                    key={fretNumber}
+                    className="flex-1 border-b border-slate-600 relative"
+                  >
+                    {stringIndex === 0 && (
+                      <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-[9px] text-slate-500">
+                        {fretNumber}
+                      </span>
+                    )}
+                    {isActive && (
+                      <div className="w-3 h-3 rounded-full bg-amber-400 shadow-lg absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" />
+                    )}
+                  </div>
                 );
               })}
-              {/* fret number */}
-              <span className="absolute -right-4 top-1/2 -translate-y-1/2 text-[9px] text-slate-500">
-                {fretIdx}
-              </span>
             </div>
-          ))}
-        </div>
-        {/* Open / muted indicators */}
-        <div className="absolute -top-4 left-2 right-2 flex justify-between">
-          {frets.map((f, i) => (
-            <div key={i} className="w-3 text-center">
-              {f === 0 && (
-                <div className="w-3 h-3 rounded-full border border-slate-200 mx-auto"></div>
-              )}
-              {f === -1 && (
-                <span className="text-[9px] font-bold text-red-400">X</span>
-              )}
-            </div>
-          ))}
-        </div>
+          </div>
+        ))}
       </div>
     </div>
   );
 };
 
-/* ---------- MAIN VISUALIZER ---------- */
+// 4-string uke fretboard (4-fret window)
+const UkeFretboard: React.FC<{ frets: number[] }> = ({ frets }) => {
+  const numericFrets = frets.filter(f => f > 0);
+  const minFret = numericFrets.length ? Math.min(...numericFrets) : 1;
+  const startFret = Math.max(1, minFret);
+  const endFret = startFret + 3;
 
-interface InstrumentVisualizerProps {
-  genre: Genre;
-}
+  return (
+    <div className="w-full max-w-xs mx-auto">
+      <div className="flex flex-col gap-1">
+        {frets.map((fret, stringIndex) => (
+          <div
+            key={stringIndex}
+            className="flex items-center h-6 text-[11px] text-slate-400"
+          >
+            <div className="w-5 flex justify-center items-center">
+              {fret === -1 && <span className="text-rose-400">X</span>}
+              {fret === 0 && <span className="text-slate-200">O</span>}
+            </div>
+            <div className="flex-1 flex">
+              {Array.from(
+                { length: endFret - startFret + 1 },
+                (_, i) => startFret + i
+              ).map(fretNumber => {
+                const isActive = fret === fretNumber;
+                return (
+                  <div
+                    key={fretNumber}
+                    className="flex-1 border-b border-slate-600 relative"
+                  >
+                    {stringIndex === 0 && (
+                      <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-[9px] text-slate-500">
+                        {fretNumber}
+                      </span>
+                    )}
+                    {isActive && (
+                      <div className="w-3 h-3 rounded-full bg-emerald-300 shadow-lg absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
 
-type Instrument = "piano" | "guitar" | "ukulele";
+// --- main visualizer ---
 
 export const InstrumentVisualizer: React.FC<InstrumentVisualizerProps> = ({
   genre,
 }) => {
-  const [instrument, setInstrument] = useState<Instrument>("piano");
+  const chords: ProgressionChord[] = useMemo(() => {
+    if (genre.progressionChords && genre.progressionChords.length > 0) {
+      return genre.progressionChords;
+    }
+    return buildFallbackChords(genre);
+  }, [genre]);
 
-  const chords: ProgressionChord[] =
-    genre.progressionChords && genre.progressionChords.length > 0
-      ? genre.progressionChords
-      : [
-          {
-            degree: "I",
-            symbol: genre.key?.split(" ")[0] ?? "C",
-            shape: genre.visual_chord as ChordShapeName,
-            note: "Basic chord visual – add more detailed progressionChords to this genre for richer analysis.",
-          },
-        ];
+  const [activeIndex, setActiveIndex] = useState(0);
+  const active = chords[activeIndex] ?? chords[0];
+
+  const shapeKey: ChordShapeKey =
+    (active?.shape as ChordShapeKey) ||
+    (genre.visual_chord as ChordShapeKey) ||
+    "Maj7";
+
+  const shape = CHORD_SHAPES[shapeKey];
 
   return (
     <section>
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
-          {instrument === "piano" && <Piano className="h-5 w-5 text-emerald-400" />}
-          {instrument === "guitar" && (
-            <Guitar className="h-5 w-5 text-emerald-400" />
-          )}
-          {instrument === "ukulele" && (
-            <Music className="h-5 w-5 text-emerald-400" />
-          )}
-          Chord Progression Visualizer
-        </h2>
-        <div className="inline-flex rounded-full bg-slate-900 border border-slate-700 p-1 text-[11px]">
+      <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+        <Piano className="h-5 w-5 text-emerald-400" />
+        Progression &amp; Voicing Map
+      </h2>
+
+      {/* Flow of degrees */}
+      <div className="mb-4 flex flex-wrap gap-2 items-center text-xs font-mono text-slate-400">
+        <span className="uppercase tracking-wide text-slate-500">Flow:</span>
+        {chords.map((chord, idx) => (
           <button
-            onClick={() => setInstrument("piano")}
-            className={`px-2.5 py-1 rounded-full ${
-              instrument === "piano"
-                ? "bg-emerald-500 text-slate-900 font-semibold"
-                : "text-slate-300 hover:bg-slate-800"
-            }`}
+            key={idx}
+            onClick={() => setActiveIndex(idx)}
+            className={`
+              px-2 py-1 rounded-md border flex items-center gap-1 transition-colors
+              ${
+                idx === activeIndex
+                  ? "bg-emerald-500/20 border-emerald-400 text-emerald-100"
+                  : "bg-slate-900 border-slate-700 hover:border-slate-500 hover:text-slate-100"
+              }
+            `}
           >
-            Piano
+            <span>{chord.degree}</span>
+            <span className="text-[10px] text-slate-500">({chord.symbol})</span>
+            {idx < chords.length - 1 && (
+              <ChevronRight className="h-3 w-3 text-slate-500" />
+            )}
           </button>
-          <button
-            onClick={() => setInstrument("guitar")}
-            className={`px-2.5 py-1 rounded-full ${
-              instrument === "guitar"
-                ? "bg-emerald-500 text-slate-900 font-semibold"
-                : "text-slate-300 hover:bg-slate-800"
-            }`}
-          >
-            Guitar
-          </button>
-          <button
-            onClick={() => setInstrument("ukulele")}
-            className={`px-2.5 py-1 rounded-full ${
-              instrument === "ukulele"
-                ? "bg-emerald-500 text-slate-900 font-semibold"
-                : "text-slate-300 hover:bg-slate-800"
-            }`}
-          >
-            Uke
-          </button>
-        </div>
+        ))}
       </div>
 
-      <div className="bg-slate-900 rounded-xl border border-slate-800 p-4 sm:p-5 space-y-4">
-        {chords.length === 0 ? (
-          <p className="text-xs text-slate-400">
-            No chord data defined for this genre yet.
-          </p>
-        ) : (
-          <div className="flex gap-3 text-[11px] text-slate-400 mb-3">
-            <span className="px-2 py-1 rounded bg-slate-800 border border-slate-700">
-              Tip: click through the chords in order – this is the actual
-              progression for this style.
-            </span>
+      {/* Active chord explanation */}
+      <div className="mb-4 bg-slate-900 border border-slate-800 rounded-lg p-4 text-xs md:text-sm">
+        <div className="flex items-center justify-between mb-2">
+          <div className="font-mono text-slate-100">
+            {active.degree} •{" "}
+            <span className="text-emerald-300">{active.symbol}</span>{" "}
+            <span className="text-slate-500">[{shapeKey}]</span>
           </div>
-        )}
+        </div>
+        <p className="text-slate-400 leading-relaxed">{active.note}</p>
+      </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-          {chords.map((chord, idx) => {
-            const shapeName = chord.shape as ChordShapeName;
-            const shape = CHORD_SHAPES[shapeName];
-            if (!shape) {
-              return (
-                <div
-                  key={`${chord.symbol}-${idx}`}
-                  className="bg-slate-950/60 border border-slate-800 rounded-lg p-3"
-                >
-                  <div className="text-xs text-slate-500">
-                    No visual mapping yet for shape{" "}
-                    <span className="font-mono font-semibold">
-                      {chord.shape}
-                    </span>
-                    .
-                  </div>
-                </div>
-              );
-            }
-
-            const pitchClasses = getPitchClasses(chord.symbol, shapeName);
-
-            let diagram: React.ReactNode = null;
-            if (instrument === "piano") {
-              diagram = <PianoKeyboard pitchClasses={pitchClasses} />;
-            } else if (instrument === "guitar") {
-              diagram = (
-                <Fretboard
-                  frets={shape.guitarFrets}
-                  tuningLabel="E A D G B E"
-                />
-              );
-            } else {
-              diagram = (
-                <Fretboard frets={shape.ukeFrets} tuningLabel="G C E A" />
-              );
-            }
-
-            return (
-              <div
-                key={`${chord.symbol}-${idx}`}
-                className="bg-slate-950/70 border border-slate-800 rounded-lg p-3 flex flex-col gap-2"
-              >
-                <div className="flex items-baseline justify-between gap-2">
-                  <div>
-                    <div className="text-[10px] uppercase tracking-wide text-slate-500">
-                      {chord.degree}
-                    </div>
-                    <div className="text-lg font-bold text-emerald-300 font-mono">
-                      {chord.symbol}
-                    </div>
-                  </div>
-                  <span className="text-[10px] px-2 py-1 rounded-full bg-slate-900 border border-slate-700 text-slate-300 font-mono">
-                    {chord.shape}
-                  </span>
-                </div>
-                {diagram}
-                <p className="text-[11px] text-slate-400 leading-snug">
-                  {chord.note}
-                </p>
-              </div>
-            );
-          })}
+      {/* Instrument visuals */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Piano */}
+        <div className="bg-slate-900 border border-slate-800 rounded-lg p-4 flex flex-col gap-3">
+          <div className="flex items-center gap-2 text-slate-200 text-sm">
+            <Piano className="h-4 w-4 text-emerald-400" />
+            Piano voicing
+          </div>
+          <KeyboardDiagram intervals={shape.pianoIntervals} />
+          <p className="text-[11px] text-slate-400 mt-1">
+            Intervals from the root:{" "}
+            <span className="font-mono">
+              {shape.pianoIntervals.join(", ")} semitones
+            </span>
+          </p>
         </div>
 
-        <div className="mt-2 text-[10px] text-slate-500">
-          These diagrams are{" "}
-          <span className="text-slate-200">conceptual</span> — adjust exact
-          voicings to sit better in your track, but the <em>function</em> of
-          each chord stays the same.
+        {/* Guitar */}
+        <div className="bg-slate-900 border border-slate-800 rounded-lg p-4 flex flex-col gap-3">
+          <div className="flex items-center gap-2 text-slate-200 text-sm">
+            <Guitar className="h-4 w-4 text-amber-300" />
+            Guitar shape
+          </div>
+          <GuitarFretboard frets={shape.guitarFrets} />
+          <p className="text-[11px] text-slate-400 mt-1">
+            <span className="font-mono">X</span> = muted,{" "}
+            <span className="font-mono">O</span> = open string. Dots show
+            suggested grip.
+          </p>
+        </div>
+
+        {/* Ukulele */}
+        <div className="bg-slate-900 border border-slate-800 rounded-lg p-4 flex flex-col gap-3">
+          <div className="flex items-center gap-2 text-slate-200 text-sm">
+            <Music2 className="h-4 w-4 text-pink-300" />
+            Ukulele shape
+          </div>
+          <UkeFretboard frets={shape.ukeFrets} />
+          <p className="text-[11px] text-slate-400 mt-1">
+            Tuned to <span className="font-mono">G–C–E–A</span>. Use this as a
+            starting voicing and adjust for comfort.
+          </p>
         </div>
       </div>
     </section>
