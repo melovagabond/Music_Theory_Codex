@@ -1,32 +1,28 @@
 import React, { useState } from "react";
-import { InstrumentVisualizer } from "./InstrumentVisualizer";
-import { CircleOfFifthsTool } from "./CircleOfFifthsTool";
 import {
-  GitBranch,
   BookOpen,
-  Play,
-  Search,
   Menu,
   X,
+  GitBranch,
   ChevronRight,
-  Headphones,
   Clock,
-  Key,
-  Copy,
   FileText,
-  Disc,
+  Search,
   Info,
+  Headphones,
+  Play,
+  Key,
 } from "lucide-react";
+import { CircleOfFifthsTool } from "./CircleOfFifthsTool";
+import { InstrumentVisualizer } from "./InstrumentVisualizer";
 
-// -----------------------------------------
-// TYPES
-// -----------------------------------------
+/* ---------- TYPES ---------- */
 
 export interface ProgressionChord {
-  degree: string; // e.g. "I", "ii7"
-  symbol: string; // e.g. "Cmaj7", "Dm7"
-  shape: string; // e.g. "Maj7", "min7", "Dom7"
-  note: string; // explanation
+  degree: string; // "I", "ii7", "bVII"...
+  symbol: string; // "Cmaj7"
+  shape: string; // "Maj7" | "min7" | "Dom7" etc
+  note: string; // explanation / usage
 }
 
 export interface Genre {
@@ -37,8 +33,8 @@ export interface Genre {
   description: string;
   progression: string;
   progressionNote: string;
-  key?: string; // example key ("C Major")
-  keys?: string[]; // common keys list for UI
+  key?: string; // example primary key
+  keys?: string[]; // list of common keys
   progressionChords?: ProgressionChord[];
   instruments: {
     piano: string;
@@ -47,7 +43,7 @@ export interface Genre {
   };
   visual_chord: string;
   key_traits: string[];
-  theoryNotes?: string[];
+  theoryNotes?: string[]; // extra educational bullets
 }
 
 export interface Phase {
@@ -56,32 +52,31 @@ export interface Phase {
   genres: Genre[];
 }
 
-// -----------------------------------------
-// DATA: PHASES / GENRES
-// -----------------------------------------
+/* ---------- GENRE DATA (TRIMMED BUT STRUCTURED) ---------- */
+/* You can extend this with more genres from your doc – just follow the same shape. */
 
 const phases: Phase[] = [
   {
     id: "phase-1",
-    title: "Phase I: Jazz Foundations (1910s-50s)",
+    title: "Phase I: Jazz Foundations (1910s–50s)",
     genres: [
       {
         id: "ragtime",
         name: "Ragtime",
-        bpm: "90-110",
+        bpm: "90–110",
         timing: "2/4 (March)",
         description:
-          "The rhythmic precursor to jazz. Syncopated melody lines against a steady 'stride' bass.",
-        key: "C Major",
+          "The rhythmic precursor to jazz. Syncopated right hand over a steady 'stride' left hand.",
+        key: "C Major (example)",
         progression: "I – VI7 – II7 – V7",
         progressionNote:
-          "Circle of Fifths Turnaround. A chain of secondary dominants that creates forward momentum (C–A7–D7–G7→C).",
+          "Classic Circle-of-Fifths turnaround using secondary dominants (C–A7–D7–G7 → C).",
         progressionChords: [
           {
             degree: "I",
             symbol: "Cmaj7",
             shape: "Maj7",
-            note: "Home base tonic; often voiced as C6/CΔ for period-correct color.",
+            note: "Home base tonic. Often voiced as C6/CΔ for period-correct color.",
           },
           {
             degree: "VI7",
@@ -99,77 +94,70 @@ const phases: Phase[] = [
             degree: "V7",
             symbol: "G7",
             shape: "Dom7",
-            note: "Primary dominant resolving back to C; classic Circle of Fifths motion.",
+            note: "Primary dominant resolving back to C; completes the circle.",
           },
         ],
         instruments: {
           piano:
-            "Stride: LH alternates low root (beats 1 & 3) and mid-range chord (2 & 4).",
+            "Stride: LH alternates low bass note (1 & 3) and mid-range chord (2 & 4).",
           guitar:
-            "Bass-Chord Strum: Thumb plays root, fingers pluck chord on off-beats.",
+            "Bass–chord pattern: thumb hits roots, fingers strum chords on off-beats.",
           ukulele:
-            "Split Strum: Down on G/C, up on E/A to simulate stride separation.",
+            "Split-strum: down on G/C, up on E/A to fake stride separation.",
         },
         visual_chord: "Dom7",
-        key_traits: ["Syncopation", "Stride Piano", "Secondary Dominants"],
-      },
-      {
-        id: "dixieland",
-        name: "Dixieland / Hot Jazz",
-        bpm: "160-220",
-        timing: "4/4 (Flat-four)",
-        description:
-          "Ensemble improvisation. Polyphonic 'Hot Jazz' style relying on collective improv.",
-        progression: "Dominant 7th Cycles",
-        progressionNote:
-          "Heavy use of flat-five (blue notes) and Dominant 7ths driving movement.",
-        instruments: {
-          piano: "Stride bass with rolled octaves.",
-          guitar: "Fast, driving quarter notes (flat-four beat).",
-          ukulele: "Banjo-style rapid strumming.",
-        },
-        visual_chord: "Dom7",
-        key_traits: ["Polyphony", "Flat-Five", "Collective Improv"],
+        key_traits: ["Syncopation", "Stride", "Secondary Dominants"],
+        theoryNotes: [
+          "Right hand often outlines chord tones with chromatic passing notes.",
+          "Left hand is basically an entire rhythm section – bass + comping.",
+          "Secondary dominants are your friend when you want motion without full modulation.",
+        ],
       },
       {
         id: "swing",
         name: "Swing",
-        bpm: "120-160",
+        bpm: "120–160",
         timing: "4/4 (Swung 8ths)",
         description:
-          "The dance era. Introduced the 'lilt' and walking bass. 2:1 beat division.",
+          "The dance era. Walking bass, swung 8ths, and the standard jazz ii–V–I grammar.",
         key: "C Major (example)",
         progression: "ii7 – V7 – Imaj7",
         progressionNote:
-          "The fundamental unit of Jazz harmony. Root movement by 5ths; defines functional resolution.",
+          "The fundamental jazz phrase: functional harmony with root movement by 5ths.",
         progressionChords: [
           {
             degree: "ii7",
             symbol: "Dm7",
             shape: "min7",
-            note: "Pre-dominant; sets up G7 and carries the swung 8th feel.",
+            note: "Pre-dominant; smooth step up from I or vi.",
           },
           {
             degree: "V7",
             symbol: "G7",
             shape: "Dom7",
-            note: "Dominant creating tension and forward motion toward I.",
+            note: "Dominant that wants to resolve; often extended (9, 13).",
           },
           {
             degree: "Imaj7",
             symbol: "Cmaj7",
             shape: "Maj7",
-            note: "Tonic resolution; often voiced as C6/CΔ with added color tones.",
+            note: "Tonic resolution; can be voiced as C6 or Cmaj9.",
           },
         ],
         instruments: {
-          piano: "Shell Voicings: Root, 3rd, 7th (omitting 5th).",
+          piano: "Shell voicings (3rd + 7th) with LH, fills in RH.",
           guitar:
-            "Freddie Green Style: Mute everything except 3rd and 7th strings.",
-          ukulele: "Triplet feel strumming (Down-up-down).",
+            "Freddie Green style: short, muted quarter-note chords on each beat.",
+          ukulele:
+            "Triplet feel: down-up-down on each beat to imply swing subdivision.",
         },
-        visual_chord: "Maj6",
-        key_traits: ["Walking Bass", "Major 6th Chords", "Dominant 9th"],
+        visual_chord: "Maj7",
+        key_traits: ["Walking Bass", "Swing Feel", "ii–V–I"],
+        theoryNotes: [
+          "Bass usually walks in quarter notes outlining chord tones.",
+          "The drummer rides on cymbal with a 'ding-ding-da-ding' pattern.",
+          "ii–V–I is the default move: if you’re lost, aim for it.",
+        ],
       },
       {
         id: "bebop",
@@ -177,841 +165,483 @@ const phases: Phase[] = [
         bpm: "200+",
         timing: "4/4 (Fast Swing)",
         description:
-          "Art music. Rapid harmonic rhythm and complex substitutions.",
+          "Virtuosic, harmonically dense jazz. Fast ii–V chains and tritone substitutions.",
         key: "C Major (example Rhythm Changes key)",
-        progression: "Rhythm Changes (Modified)",
+        progression: "I – bIII7 – ii7 – bII7",
         progressionNote:
-          "Tritone Subs: I – bIII7 – ii – bII7. Chromatic bass movement and dense ii–V chains.",
+          "Tritone substitutions and chromatic bass movement; almost every beat has a new tension.",
         progressionChords: [
           {
             degree: "I",
             symbol: "Cmaj7",
             shape: "Maj7",
-            note: "Home key center; often ornamented with 9ths and #11.",
+            note: "Key center – but often quickly embellished or side-stepped.",
           },
           {
             degree: "bIII7",
             symbol: "Eb7",
             shape: "Dom7",
-            note: "Tritone substitute that creates chromatic bass motion and altered color.",
+            note: "Tritone sub; creates chromatic motion toward Dm7.",
           },
           {
             degree: "ii7",
             symbol: "Dm7",
             shape: "min7",
-            note: "Standard pre-dominant in ii–V motion.",
+            note: "Standard pre-dominant.",
           },
           {
             degree: "bII7",
             symbol: "Db7",
             shape: "Dom7",
-            note: "Tritone sub for G7; resolves to I with strong chromatic pull.",
+            note: "Tritone sub for G7, resolving back to I with maximum spice.",
           },
         ],
         instruments: {
-          piano: "Bud Powell voicings (Root-7th or Root-3rd in LH).",
-          guitar: "Single-note chromatic lines. Chromatic enclosures.",
-          ukulele: "Rhythmic comping only, no full strums.",
+          piano:
+            "Left hand plays sparse shells, right hand runs long 8th-note lines.",
+          guitar:
+            "Single-note chromatic lines, enclosures around chord tones.",
+          ukulele: "Comp lightly; leave the shred to horns/piano.",
         },
         visual_chord: "Dom9",
-        key_traits: ["Tritone Substitution", "Virtuosity", "Complex Improv"],
-      },
-      {
-        id: "cool-jazz",
-        name: "Cool Jazz",
-        bpm: "Medium",
-        timing: "4/4",
-        description:
-          "Relaxed tempos and lighter tones. Prioritized arrangement over speed.",
-        progression: "Rootless Voicings",
-        progressionNote:
-          "Bill Evans style: Omitting the root (played by bass) to add 9ths/13ths.",
-        instruments: {
-          piano: "Sparse comping, rootless voicings.",
-          guitar: "Soft attack, focus on tone.",
-          ukulele: "Fingerstyle arrangements.",
-        },
-        visual_chord: "min9",
-        key_traits: ["Rootless Voicings", "Arrangement", "Lighter Tone"],
-      },
-      {
-        id: "hard-bop",
-        name: "Hard Bop",
-        bpm: "Medium",
-        timing: "4/4",
-        description: "Soulful return to blues and gospel roots within jazz.",
-        progression: "I7 - IV7 (Blues Vamps)",
-        progressionNote:
-          "Blues licks over complex changes. #9 tensions on dominants.",
-        instruments: {
-          piano: "Funky riffs, Gospel influence.",
-          guitar: "Blues licks.",
-          ukulele: "Blues scale runs.",
-        },
-        visual_chord: "Dom7",
-        key_traits: ["Gospel Roots", "Blues Licks", "Soulful"],
+        key_traits: ["Chromaticism", "Tritone Subs", "Fast ii–V Chains"],
       },
       {
         id: "modal-jazz",
         name: "Modal Jazz",
         bpm: "Various",
         timing: "4/4",
-        description: "Static harmony based on modes (Dorian, Phrygian).",
-        progression: "Dorian Vamps",
+        description:
+          "Fewer chords, more space. Harmony lingers on modes instead of constant ii–V–I.",
+        key: "D Dorian (So What example)",
+        progression: "i7 (D Dorian) – i7 (Eb Dorian)",
         progressionNote:
-          "Quartal harmony (stacked 4ths). Avoids functional resolution.",
+          "The interest comes from modal color and phrasing, not chord changes.",
+        progressionChords: [
+          {
+            degree: "i7",
+            symbol: "Dm7",
+            shape: "min7",
+            note: "D Dorian center; use D–E–F–G–A–B–C.",
+          },
+          {
+            degree: "i7 (♭II move)",
+            symbol: "Ebm7",
+            shape: "min7",
+            note: "Side-step up a half-step for contrast; then back to Dm7.",
+          },
+        ],
         instruments: {
-          piano: "So What voicings (two stacked 4ths + major 3rd).",
-          guitar: "Modal scale runs over static bass.",
-          ukulele: "Open string drones.",
+          piano:
+            "Quartal 'So What' voicings (stacked 4ths) that slide around.",
+          guitar: "Long modal lines, less worry about changes.",
+          ukulele: "Open-string drones + modal riffs.",
         },
         visual_chord: "Sus4",
-        key_traits: ["Quartal Harmony", "Dorian Mode", "Static"],
+        key_traits: ["Modes", "Quartal Harmony", "Static Vamps"],
       },
       {
         id: "bossa-nova",
         name: "Bossa Nova",
-        bpm: "120-140",
+        bpm: "120–140",
         timing: "2/4 (Clave)",
         description:
-          "Fusion of Samba and Cool Jazz. Critical for City Pop.",
-        key: "F Major (example: ‘Girl from Ipanema’ style)",
+          "Cool jazz harmony on Brazilian rhythms. Essential DNA for City Pop and fusion.",
+        key: "F Major (example)",
         progression: "Imaj7 – II7 – ii7 – bII7",
         progressionNote:
-          "Jobim changes. II7 and bII7 act as secondary and tritone dominants, creating a floating yet directional feel.",
+          "Jobim-style motion: II7 and ♭II7 act as secondary and tritone dominants.",
         progressionChords: [
           {
             degree: "Imaj7",
             symbol: "Fmaj7",
             shape: "Maj7",
-            note: "Tonal center; usually voiced with 9th/13th for smooth color.",
+            note: "Tonal center; voiced with 9/13 for lushness.",
           },
           {
             degree: "II7",
             symbol: "G7",
             shape: "Dom7",
-            note: "Secondary dominant that hints at modulation but often sidesteps.",
+            note: "Secondary dominant hinting at modulation but often redirected.",
           },
           {
             degree: "ii7",
             symbol: "Gm7",
             shape: "min7",
-            note: "Modal, softer pre-dominant; keeps harmony smooth and lyrical.",
+            note: "Soft pre-dominant; very 'bossa' flavor.",
           },
           {
-            degree: "bII7",
+            degree: "♭II7",
             symbol: "Gb7",
             shape: "Dom7",
-            note: "Tritone substitute functioning as V7; resolves back to I with sophisticated motion.",
+            note: "Tritone sub functioning as dominant back to I.",
           },
         ],
         instruments: {
-          piano: "Comping with dense extensions (9ths, 13ths, #11s).",
-          guitar: "The 'Stutter' beat: Thumb on 1 & 3, fingers syncopated.",
-          ukulele: "Clave-based patterns.",
+          piano: "Syncopated voicings, 9ths and 13ths, soft dynamics.",
+          guitar:
+            "Thumb on beats 1 & 3 (bass), fingers syncopate chords on &-of-2 and &-of-4.",
+          ukulele: "Clave-aware patterns with light syncopation.",
         },
         visual_chord: "6/9",
-        key_traits: ["Clave Rhythm", "Nylon String", "Whisper Vocals"],
-      },
-      {
-        id: "samba",
-        name: "Samba",
-        bpm: "Fast",
-        timing: "2/4",
-        description:
-          "Energetic parent of Bossa Nova. Communal and percussion-heavy.",
-        progression: "ii - V loops",
-        progressionNote:
-          "Rhythmic ostinatos take precedence over complex harmony.",
-        instruments: {
-          piano: "Rhythmic ostinato (1-and-2-and).",
-          guitar: "Rapid 16th-note strumming.",
-          ukulele: "Fast triplets (down-thumb, up-finger, down-finger).",
-        },
-        visual_chord: "Maj6",
-        key_traits: ["Surdo Beat", "Percussive", "High Energy"],
-      },
-      {
-        id: "latin-jazz",
-        name: "Latin Jazz / Afro-Cuban",
-        bpm: "Various",
-        timing: "Clave (2-3 or 3-2)",
-        description:
-          "Incorporates clave rhythms into jazz harmony. The 'Spanish Tinge'.",
-        progression: "Montuno Patterns",
-        progressionNote:
-          "Arpeggiated syncopated chords. Piano acts as percussion.",
-        instruments: {
-          piano: "Montuno patterns.",
-          guitar: "Syncopated chord stabs.",
-          ukulele: "Clave taps.",
-        },
-        visual_chord: "Dom9",
-        key_traits: ["Clave", "Montuno", "Tumbao"],
-      },
-      {
-        id: "soul-jazz",
-        name: "Soul Jazz",
-        bpm: "Medium",
-        timing: "4/4",
-        description:
-          "Stripped-down, bluesy variant of Hard Bop. Hammond B3 era.",
-        progression: "I7 - IV7 Vamps",
-        progressionNote:
-          "Gospel turnarounds. Organ trio format.",
-        instruments: {
-          piano: "Hammond B3 style licks.",
-          guitar: "Bluesy double-stops.",
-          ukulele: "Shuffle strum.",
-        },
-        visual_chord: "Dom7",
-        key_traits: ["Hammond B3", "Bluesy", "Groove"],
-      },
-      {
-        id: "gypsy-jazz",
-        name: "Gypsy Jazz (Manouche)",
-        bpm: "200+",
-        timing: "4/4 (La Pompe)",
-        description:
-          "Django Reinhardt style. European jazz tradition.",
-        progression: "i6 – iv6 – V7",
-        progressionNote:
-          "Heavy use of Diminished 7th chords as dominant substitutes.",
-        instruments: {
-          piano: "Rarely used (Accordion substitutes).",
-          guitar:
-            "La Pompe: Heavy accent on beats 2 & 4. Geometric shapes.",
-          ukulele: "Diminished 7th sliding trick.",
-        },
-        visual_chord: "dim7",
-        key_traits: ["La Pompe", "Diminished Subs", "Minor 6th"],
+        key_traits: ["Clave Rhythm", "Lush Extensions", "Soft Dynamics"],
       },
     ],
   },
   {
     id: "phase-2",
-    title: "Phase II: Rhythm Evolution (60s-70s)",
+    title: "Phase II: Rhythm Evolution (50s–70s)",
     genres: [
       {
         id: "early-rnb",
-        name: "Rhythm & Blues (Early)",
+        name: "Early R&B",
         bpm: "Medium",
         timing: "12/8 or 4/4 Shuffle",
         description:
-          "Transition from swing to rock. Triplet feel.",
-        progression: "Blues forms",
-        progressionNote: "Rolling triplets driving the rhythm.",
+          "Bridge from swing to rock. Triplet shuffle grooves and blues forms.",
+        progression: "I7 – IV7 – V7 (12-bar Blues)",
+        progressionNote:
+          "Standard 12-bar form using dominant chords on I, IV, and V.",
+        progressionChords: [
+          {
+            degree: "I7",
+            symbol: "A7",
+            shape: "Dom7",
+            note: "Bluesy tonic; doesn’t resolve like a normal major I.",
+          },
+          {
+            degree: "IV7",
+            symbol: "D7",
+            shape: "Dom7",
+            note: "Subdominant blues color.",
+          },
+          {
+            degree: "V7",
+            symbol: "E7",
+            shape: "Dom7",
+            note: "Dominant setting up either turnaround or tag.",
+          },
+        ],
+        key: "A Mixolydian / A Blues",
         instruments: {
-          piano: "Fats Domino style rolling triplets.",
-          guitar: "Double stops and bending.",
-          ukulele: "Shuffle rhythm.",
+          piano: "Rolling triplets in RH, bass figures in LH.",
+          guitar: "Double-stops, Chuck Berry-style riffs.",
+          ukulele: "Shuffle strum, accenting backbeats.",
         },
         visual_chord: "Dom7",
-        key_traits: ["Shuffle", "Double Stops", "Triplets"],
+        key_traits: ["Shuffle", "12-bar Blues", "Triplets"],
       },
       {
         id: "motown",
-        name: "Motown (Northern Soul)",
-        bpm: "100-130",
+        name: "Motown",
+        bpm: "100–130",
         timing: "4/4",
         description:
-          "The Sound of Young America. Pop structures with Gospel roots.",
+          "Pop songs with gospel harmony and hyper-melodic bass lines.",
+        key: "Eb Major (example)",
         progression: "I – vi – IV – V",
         progressionNote:
-          "Sophisticated arrangements masking simple changes.",
+          "Pop-gospel classic; extremely singable voice-leading.",
+        progressionChords: [
+          {
+            degree: "I",
+            symbol: "Eb",
+            shape: "Maj7",
+            note: "Home base; often voiced as Eb6/Ebmaj9.",
+          },
+          {
+            degree: "vi",
+            symbol: "Cm7",
+            shape: "min7",
+            note: "Relative minor; smooth drop from I.",
+          },
+          {
+            degree: "IV",
+            symbol: "Abmaj7",
+            shape: "Maj7",
+            note: "Lifts harmony; feels hopeful.",
+          },
+          {
+            degree: "V",
+            symbol: "Bb7",
+            shape: "Dom7",
+            note: "Dominant; pushes back to I or into pre-chorus.",
+          },
+        ],
         instruments: {
-          piano: "Gospel block chords, doubling snare.",
-          guitar: "'Chinks' on the backbeat (2 & 4).",
-          ukulele: "Percussive damping on backbeats.",
+          piano: "Block chords with rhythmic stabs supporting drums.",
+          guitar: "Clean, choked chords on 2 and 4.",
+          ukulele: "Backbeat-focused pop strum.",
         },
         visual_chord: "Maj7",
-        key_traits: ["Melodic Bass", "Tambourine", "Orchestration"],
-      },
-      {
-        id: "southern-soul",
-        name: "Southern Soul (Stax)",
-        bpm: "Slow-Medium",
-        timing: "4/4",
-        description:
-          "Grittier, horn-driven soul. Emphasis on the groove.",
-        progression: "Soul Ballad changes",
-        progressionNote:
-          "Economical playing leaving space for vocals.",
-        instruments: {
-          piano: "Gospel/Church chords.",
-          guitar: "Sliding 6ths (Steve Cropper style).",
-          ukulele: "Soulful strumming.",
-        },
-        visual_chord: "Maj6",
-        key_traits: ["Grit", "Horns", "Space"],
+        key_traits: ["Melodic Bass", "Backbeat", "Gospel DNA"],
       },
       {
         id: "deep-funk",
         name: "Deep Funk",
-        bpm: "90-110",
+        bpm: "90–110",
         timing: "4/4",
         description:
-          "James Brown style. 'The One' is sacred.",
+          "James Brown style. Everything revolves around ‘The One’.",
         key: "E Mixolydian (example)",
-        progression: "Static I7 / I9",
+        progression: "Static I7 / I9 vamp",
         progressionNote:
-          "Harmonic movement stops for rhythmic movement; everything orbits The One.",
+          "Harmony barely moves so rhythm, subdivision, and dynamics take over.",
         progressionChords: [
           {
             degree: "I9",
             symbol: "E9",
             shape: "Dom9",
-            note: "The classic funk grip; used as a static vamp while rhythm does the work.",
+            note: "Funk grip. Played staccato, often with muted ghost notes.",
           },
         ],
         instruments: {
-          piano: "Clavinet rhythmic patterns.",
+          piano: "Clavinet-like stabs, rhythmic more than harmonic.",
           guitar:
-            "The 'Scratch': Muted 16th notes. E9 'Funk Grip'.",
-          ukulele: "Ghost note scratching.",
+            "16th-note 'scratch' patterns with E9 at the core of the groove.",
+          ukulele: "Muted percussive hits on off-beats.",
         },
         visual_chord: "Dom9",
-        key_traits: ["The One", "Syncopated Bass", "Ghost Notes"],
-      },
-      {
-        id: "p-funk",
-        name: "P-Funk",
-        bpm: "Medium",
-        timing: "4/4",
-        description:
-          "Psychedelic, synthesized funk. Parliament-Funkadelic.",
-        progression: "Blues Scales over Synth Bass",
-        progressionNote:
-          "Heavy squelchy synth bass (Minimoog).",
-        instruments: {
-          piano: "Synthesizers (Minimoog).",
-          guitar: "Wah-wah pedal effects.",
-          ukulele: "Psychedelic effects.",
-        },
-        visual_chord: "Dom7",
-        key_traits: ["Synth Bass", "Sci-Fi", "Group Vocals"],
-      },
-      {
-        id: "jazz-funk",
-        name: "Jazz-Funk",
-        bpm: "Medium",
-        timing: "4/4",
-        description:
-          "Bridge between Jazz complexity and Funk groove.",
-        key: "D Dorian (example)",
-        progression: "Dorian Vamps",
-        progressionNote:
-          "Herbie Hancock style: modal vamps with Rhodes textures.",
-        progressionChords: [
-          {
-            degree: "i7 (Dorian)",
-            symbol: "Dm7",
-            shape: "min7",
-            note: "Modal center; often extended to Dm9/Dm11.",
-          },
-          {
-            degree: "IV7",
-            symbol: "G7",
-            shape: "Dom7",
-            note: "Creates a D Dorian ↔ G Mixolydian shuttle; groove more important than resolution.",
-          },
+        key_traits: ["The One", "Ghost Notes", "Static Harmony"],
+        theoryNotes: [
+          "Kick drum and bass both slam beat 1; everything orbits that accent.",
+          "Space (rests) is as important as the notes.",
         ],
-        instruments: {
-          piano: "Fender Rhodes electric piano.",
-          guitar: "Jazz phrasing with funk rhythm.",
-          ukulele: "Complex comping.",
-        },
-        visual_chord: "min7",
-        key_traits: ["Fender Rhodes", "Groove", "Improvisation"],
-      },
-      {
-        id: "brit-funk",
-        name: "Brit-Funk",
-        bpm: "110-120",
-        timing: "4/4",
-        description:
-          "UK blend of American jazz-funk and Caribbean rhythms.",
-        progression: "Slap Bass driven",
-        progressionNote:
-          "Brighter, trebly tone. Slap bass as lead.",
-        instruments: {
-          piano: "Bright synth keys.",
-          guitar: "Trebly funk strumming.",
-          ukulele: "Reggae-influenced strum.",
-        },
-        visual_chord: "Dom9",
-        key_traits: ["Slap Bass", "Bright Tone", "Caribbean"],
       },
       {
         id: "disco",
         name: "Disco",
-        bpm: "110-130",
-        timing: "4/4 (Four-on-the-floor)",
+        bpm: "110–130",
+        timing: "4/4 (Four-on-the-Floor)",
         description:
-          "The dance revolution. Kick on every beat.",
-        progression: "iv7 - i7 loops",
+          "Hi-hat, strings, four-on-the-floor kick, and octave bass lines.",
+        key: "F# Minor (example)",
+        progression: "i7 – VImaj7 – VII7 – i7",
         progressionNote:
-          "Minor 7th scales and soaring strings.",
+          "Minor key with bright borrowed major chords for lift.",
+        progressionChords: [
+          {
+            degree: "i7",
+            symbol: "F#m7",
+            shape: "min7",
+            note: "Minor tonic, often with 9/11 for lushness.",
+          },
+          {
+            degree: "VImaj7",
+            symbol: "Dmaj7",
+            shape: "Maj7",
+            note: "Relative major color; brings light into the progression.",
+          },
+          {
+            degree: "VII7",
+            symbol: "E7",
+            shape: "Dom7",
+            note: "Dominant pulling back to i or to a new section.",
+          },
+        ],
         instruments: {
-          piano: "Octave bass lines, staccato chords.",
-          guitar: "Nile Rodgers Strum: Continuous 16th motion.",
-          ukulele: "Fast triplets.",
+          piano: "Octave stabs and syncopated chord hits.",
+          guitar: "Nile Rodgers-style constant 16th-note groove.",
+          ukulele: "Fast, light 8th/16th strums with strong accents.",
         },
         visual_chord: "min7",
-        key_traits: ["Four-on-the-floor", "Hi-Hat", "Strings"],
-      },
-      {
-        id: "boogie",
-        name: "Boogie",
-        bpm: "105-115",
-        timing: "4/4",
-        description:
-          "Post-Disco electronic funk. Heavy on synths.",
-        progression: "Funk Vamps",
-        progressionNote:
-          "Synth bass replaces electric bass.",
-        instruments: {
-          piano: "Synth stabs.",
-          guitar: "Clean, chorus-laden rhythm.",
-          ukulele: "Percussive comping.",
-        },
-        visual_chord: "Dom9",
-        key_traits: ["Synth Bass", "Slower Tempo", "Electronic"],
-      },
-      {
-        id: "post-disco",
-        name: "Post-Disco",
-        bpm: "Various",
-        timing: "4/4",
-        description:
-          "Experimental phase following Disco. Dub/New Wave elements.",
-        progression: "Minimalist",
-        progressionNote:
-          "Stripped back arrangements. Drum machines.",
-        instruments: {
-          piano: "Synth textures.",
-          guitar: "Minimalist picking.",
-          ukulele: "Dub delays.",
-        },
-        visual_chord: "min7",
-        key_traits: ["Dub Effects", "Drum Machines", "Minimal"],
-      },
-      {
-        id: "go-go",
-        name: "Go-Go",
-        bpm: "100-110",
-        timing: "4/4 (Swing Beat)",
-        description:
-          "DC's regional funk. The 'Pocket' beat.",
-        progression: "Blues Vamps",
-        progressionNote:
-          "Continuous groove, conga/cowbell patterns.",
-        instruments: {
-          piano: "Organ pads.",
-          guitar: "Rhythmic scratching.",
-          ukulele: "Percussive accents.",
-        },
-        visual_chord: "Dom7",
-        key_traits: ["The Pocket", "Rototoms", "Call & Response"],
-      },
-      {
-        id: "blue-eyed-soul",
-        name: "Blue-Eyed Soul",
-        bpm: "Medium",
-        timing: "4/4",
-        description:
-          "Soul music performed by white artists (Hall & Oates).",
-        progression: "Jazz-Pop Fusion",
-        progressionNote:
-          "Sophisticated changes smoothing out the grit.",
-        instruments: {
-          piano: "Polished pop chords.",
-          guitar: "Clean rhythm.",
-          ukulele: "Pop strumming.",
-        },
-        visual_chord: "Maj7",
-        key_traits: ["Polished", "Melodic", "Jazz Harmony"],
-      },
-      {
-        id: "philly-soul",
-        name: "Philly Soul",
-        bpm: "Medium",
-        timing: "4/4",
-        description:
-          "Orchestral soul. Sweeping strings and vibraphones.",
-        progression: "Maj7 and Maj9",
-        progressionNote:
-          "Lush arrangements influenced Disco.",
-        instruments: {
-          piano: "Lush voicings.",
-          guitar: "Wah-wah or clean accompaniment.",
-          ukulele: "Soft strumming.",
-        },
-        visual_chord: "Maj9",
-        key_traits: ["Strings", "Vibraphone", "Lush"],
+        key_traits: ["Four-on-the-Floor", "Octave Bass", "Strings"],
       },
     ],
   },
   {
     id: "phase-3",
-    title: "Phase III: Fusion & Sophistication (70s-80s)",
+    title: "Phase III: Fusion & Sophistication (70s–80s)",
     genres: [
       {
         id: "jazz-fusion",
         name: "Jazz Fusion",
-        bpm: "Various",
-        timing: "Odd meters (5/4, 7/8)",
+        bpm: "Varies",
+        timing: "Odd meters (5/4, 7/8) & 4/4",
         description:
-          "Electrification of jazz. Virtuosity meets volume.",
+          "Electrified jazz: complex harmony and time over rock volumes.",
         key: "G Mixolydian / modal centers",
-        progression: "Slash Chords (e.g., F/G)",
+        progression: "Slash Chords (e.g. F/G → G11)",
         progressionNote:
-          "Triads over foreign bass notes creating G11 and other complex upper-structure sounds.",
+          "Upper-structure triads over bass notes create dense, modern sonorities.",
         progressionChords: [
           {
             degree: "V11",
             symbol: "F/G",
             shape: "11th",
-            note: "F major triad over G bass; functions as G11 with strong suspended color.",
+            note: "F major triad over G bass; functions as G11 with suspended sound.",
           },
         ],
         instruments: {
-          piano: "Synthesizer leads, Fender Rhodes.",
-          guitar: "Overdriven solos, bebop phrasing.",
-          ukulele: "High tension chords.",
+          piano: "Fender Rhodes or synth leads with extensions.",
+          guitar: "Overdriven solos, jazz vocabulary over rock backbeat.",
+          ukulele: "High chord voicings; texture over lead.",
         },
         visual_chord: "11th",
         key_traits: ["Virtuosity", "Electric", "Complex Harmony"],
       },
       {
-        id: "jazz-rock",
-        name: "Jazz-Rock",
-        bpm: "Medium",
-        timing: "4/4",
-        description:
-          "Rock song structures with jazz instrumentation (Steely Dan).",
-        progression: "Mu Major Chords",
-        progressionNote:
-          "Add2 chords adding texture without 'jazz' 7ths.",
-        instruments: {
-          piano: "Mu Major voicings.",
-          guitar: "Precise solos.",
-          ukulele: "Add9 chords.",
-        },
-        visual_chord: "Sus4",
-        key_traits: ["Mu Major", "Studio Precision", "Verse-Chorus"],
-      },
-      {
-        id: "prog-rock",
-        name: "Progressive Rock",
-        bpm: "Variable",
-        timing: "Odd Meters",
-        description:
-          "Classical/Jazz influenced rock. Canterbury Scene.",
-        progression: "Modulation",
-        progressionNote:
-          "Modulating between distant keys.",
-        instruments: {
-          piano: "Virtuosic runs.",
-          guitar: "Complex time signatures.",
-          ukulele: "N/A",
-        },
-        visual_chord: "dim7",
-        key_traits: ["Odd Time", "Modulation", "Epic"],
-      },
-      {
         id: "soft-rock",
         name: "Soft Rock",
-        bpm: "70-100",
+        bpm: "70–100",
         timing: "4/4",
         description:
-          "Radio-friendly rock with de-emphasized beat.",
-        progression: "Diatonic",
+          "Radio-friendly rock: vocals and chords over less aggressive drums.",
+        key: "G Major (example)",
+        progression: "I – V – vi – IV",
         progressionNote:
-          "Acoustic guitars layered with electric piano.",
+          "The 'axis of awesome' pop progression. Works in many styles.",
+        progressionChords: [
+          {
+            degree: "I",
+            symbol: "G",
+            shape: "Maj7",
+            note: "Tonic; may be voiced as Gadd9 or G6.",
+          },
+          {
+            degree: "V",
+            symbol: "D",
+            shape: "Maj7",
+            note: "Dominant function but often kept 'nice' (sus2, add9).",
+          },
+          {
+            degree: "vi",
+            symbol: "Em7",
+            shape: "min7",
+            note: "Relative minor; emotional but not heavy.",
+          },
+          {
+            degree: "IV",
+            symbol: "Cadd9",
+            shape: "Maj7",
+            note: "Subdominant with pop-friendly add-9 color.",
+          },
+        ],
         instruments: {
-          piano: "Ballad styles.",
-          guitar: "Acoustic strumming.",
-          ukulele: "Folk strumming.",
+          piano: "Arpeggiated triads or block chords under vocal.",
+          guitar: "Strummed open chords, often with add9 and sus2.",
+          ukulele: "Straight pop strum, accenting 2 & 4.",
         },
         visual_chord: "Maj7",
-        key_traits: ["Melody", "Acoustic", "Radio"],
-      },
-      {
-        id: "aor",
-        name: "AOR",
-        bpm: "Medium",
-        timing: "4/4",
-        description:
-          "Adult Oriented Rock. High-fidelity production.",
-        progression: "Polished Rock",
-        progressionNote:
-          "Sonic perfection. City Pop is 'Japanese AOR'.",
-        instruments: {
-          piano: "Studio perfect compression.",
-          guitar: "Clean solos.",
-          ukulele: "Precise rhythm.",
-        },
-        visual_chord: "Maj9",
-        key_traits: ["Hi-Fi", "Production", "Smooth"],
+        key_traits: ["Melodic", "Radio-Friendly", "Diatonic"],
       },
       {
         id: "yacht-rock",
         name: "Yacht Rock",
-        bpm: "70-100",
+        bpm: "70–100",
         timing: "4/4 (Doobie Bounce)",
         description:
-          "West Coast Sound. Smooth, highly produced.",
+          "West-Coast studio perfection: rich jazz-pop chords and smooth grooves.",
         key: "C Major (example)",
         progression: "I – iii – IV – V",
         progressionNote:
-          "Michael McDonald chords. Smooth voice leading and luxurious extensions.",
+          "Common-tone voice leading keeps everything ultra smooth and floaty.",
         progressionChords: [
           {
             degree: "I",
             symbol: "Cmaj7",
             shape: "Maj7",
-            note: "Smooth tonic; often extended to Cmaj9 for 'yacht' sheen.",
+            note: "Tonic, often extended to Cmaj9.",
           },
           {
             degree: "iii",
             symbol: "Em7",
             shape: "min7",
-            note: "Passing tonic substitute; shares common tones with Cmaj7.",
+            note: "Shares 3 notes with Cmaj7; super smooth move.",
           },
           {
             degree: "IV",
             symbol: "Fmaj7",
             shape: "Maj7",
-            note: "Warm subdominant; often voiced with 9th for lift.",
+            note: "Subdominant with a soft lift.",
           },
           {
             degree: "V",
-            symbol: "G7",
-            shape: "Dom7",
-            note: "Dominant leading back into the loop or to a new section.",
+            symbol: "G13",
+            shape: "Dom9",
+            note: "Dominant with 9 and 13 – lush but still functional.",
           },
         ],
         instruments: {
-          piano: "Heavy rhythmic Rhodes chords.",
-          guitar: "Phase shifters, complex triads.",
-          ukulele: "Jazz chords, pop strum.",
+          piano: "Rhodes comping with syncopated broken chords.",
+          guitar: "Clean, chorus-y triads and partials.",
+          ukulele: "Extended chords (maj7, 9) where possible.",
         },
         visual_chord: "Maj7",
-        key_traits: ["Doobie Bounce", "Smooth", "Electric Piano"],
-      },
-      {
-        id: "sophisti-pop",
-        name: "Sophisti-pop",
-        bpm: "90-110",
-        timing: "4/4",
-        description:
-          "UK blend of jazz, soul, and pop (Sade).",
-        progression: "Maj9 and Min9",
-        progressionNote: "Cool, detached, stylish.",
-        instruments: {
-          piano: "Smooth synth pads, DX7.",
-          guitar: "Chorus effects.",
-          ukulele: "Melodic picking.",
-        },
-        visual_chord: "Maj7",
-        key_traits: ["Stylish", "Synth Strings", "Fretless Bass"],
-      },
-      {
-        id: "smooth-jazz",
-        name: "Smooth Jazz",
-        bpm: "Medium",
-        timing: "4/4",
-        description:
-          "Radio-format fusion. Melody over improvisation.",
-        progression: "In the pocket",
-        progressionNote:
-          "Less rhythmic complexity than fusion.",
-        instruments: {
-          piano: "Melodic leads.",
-          guitar:
-            "Octave playing (Wes Montgomery style).",
-          ukulele: "Smooth melody.",
-        },
-        visual_chord: "Maj7",
-        key_traits: ["Radio Friendly", "Melodic", "Groove"],
-      },
-      {
-        id: "quiet-storm",
-        name: "Quiet Storm",
-        bpm: "Slow",
-        timing: "4/4",
-        description:
-          "R&B equivalent of Smooth Jazz. Slow jams.",
-        progression: "Min9 and Min11",
-        progressionNote:
-          "The foundation of the slow jam.",
-        instruments: {
-          piano: "Romantic voicings.",
-          guitar: "Soft accompaniment.",
-          ukulele: "Fingerstyle.",
-        },
-        visual_chord: "min9",
-        key_traits: ["Slow Jam", "Romantic", "R&B"],
+        key_traits: ["Doobie Bounce", "Maj7/9", "Studio Polish"],
       },
     ],
   },
   {
     id: "phase-4",
-    title: "Phase IV: The Japanese Evolution (70s-90s)",
+    title: "Phase IV: Japanese Evolution (70s–90s)",
     genres: [
-      {
-        id: "kayokyoku",
-        name: "Kayōkyoku (Showa Pop)",
-        bpm: "Various",
-        timing: "4/4",
-        description:
-          "Standard Japanese pop before Western branding.",
-        progression: "Pentatonic + Western",
-        progressionNote:
-          "Japanese pentatonic scales (Yonaguki) + dramatic changes.",
-        instruments: {
-          piano: "Theatrical accompaniment.",
-          guitar: "Melodic leads.",
-          ukulele: "Folk accompaniment.",
-        },
-        visual_chord: "Dom7",
-        key_traits: ["Theatrical", "Pentatonic", "Key Changes"],
-      },
-      {
-        id: "new-music",
-        name: "New Music",
-        bpm: "Medium",
-        timing: "4/4",
-        description:
-          "Singer-songwriter movement bridging Folk and Pop.",
-        progression: "Folk-Pop",
-        progressionNote:
-          "Lyrics focused on urban life. Precursor to City Pop.",
-        instruments: {
-          piano: "Songwriter style.",
-          guitar: "Acoustic focus.",
-          ukulele: "Strumming.",
-        },
-        visual_chord: "Maj7",
-        key_traits: ["Urban Lyrics", "Singer-Songwriter", "Transition"],
-      },
       {
         id: "city-pop",
         name: "City Pop",
-        bpm: "100-120",
+        bpm: "100–120",
         timing: "4/4 (Mid-tempo Funk)",
         description:
-          "Japan's bubble economy sound. AOR + Funk + Disco.",
-        key: "C Major (example Royal Road key)",
-        progression: "The Royal Road (Oudou Shinkou)",
+          "Bubble-era Japanese sound: AOR + funk + disco + bossa harmony.",
+        key: "C Major (Royal Road example)",
+        progression: "IVmaj7 – V7 – iii7 – vi",
         progressionNote:
-          "IVmaj7 – V7 – iii7 – vi. Sentimental yet driving; core City Pop DNA.",
+          "The Royal Road (Oudou Shinkou): emotionally charged, endlessly loopable.",
         progressionChords: [
           {
             degree: "IVmaj7",
             symbol: "Fmaj7",
             shape: "Maj7",
-            note: "Launches the phrase away from tonic; bright and hopeful.",
+            note: "Starts away from tonic; feels like you entered mid-journey.",
           },
           {
             degree: "V7",
             symbol: "G7",
             shape: "Dom7",
-            note: "Classic dominant; provides tension and forward motion.",
+            note: "Forward motion and brightness.",
           },
           {
             degree: "iii7",
             symbol: "Em7",
             shape: "min7",
-            note: "Surprise tonic substitute; smooth voice leading from G7.",
+            note: "Tonic substitute – shares many tones with Cmaj7.",
           },
           {
             degree: "vi",
             symbol: "Am7",
             shape: "min7",
-            note: "Emotional landing spot; often looped back into IVmaj7.",
+            note: "Melancholic landing spot that begs to loop back.",
           },
         ],
         instruments: {
-          piano: "Stabbing off-beat chords, FM Synths.",
-          guitar: "Crisp Telecaster rhythm.",
-          ukulele: "Maj7/Maj9 funk strum.",
+          piano: "FM synths + electric piano stabs on off-beats.",
+          guitar: "Crisp single-coil funk chords.",
+          ukulele: "Maj7/Maj9 shapes with syncopated strum.",
         },
         visual_chord: "Maj7",
-        key_traits: ["FM Synths", "Slap Bass", "Royal Road"],
+        key_traits: ["Royal Road", "FM Synths", "Slap Bass"],
+        theoryNotes: [
+          "Royal Road is functionally IV–V–iii–vi; try it in any key.",
+          "Bass often outlines chord tones with disco/funk rhythms.",
+        ],
       },
       {
         id: "technopop",
         name: "Technopop",
-        bpm: "120-140",
+        bpm: "120–140",
         timing: "4/4 (Machine)",
         description:
-          "YMO style. Computerized precision.",
-        progression: "Robotic Pentatonics",
+          "YMO-style computerized pop. Extremely tight timing and synth textures.",
+        progression: "Simple diatonic loops + pentatonics",
         progressionNote:
-          "Synth-driven lines over rigid beats.",
+          "Harmony stays relatively simple so sound design can shine.",
         instruments: {
-          piano: "Arpeggiators.",
-          guitar: "Synth guitar.",
-          ukulele: "N/A",
+          piano: "Mostly sequenced synth parts and arps.",
+          guitar: "Sometimes absent or heavily processed.",
+          ukulele: "More of a texture than a core instrument here.",
         },
         visual_chord: "Sus4",
-        key_traits: ["TR-808", "Vocoders", "Precision"],
-      },
-      {
-        id: "shibuya-kei",
-        name: "Shibuya-kei",
-        bpm: "Various",
-        timing: "Sample-based",
-        description:
-          "Cut-and-paste aesthetic (Pizzicato Five).",
-        progression: "Retro-Chic",
-        progressionNote:
-          "Maj6 chords, diminished passing. Kitsch.",
-        instruments: {
-          piano: "Lounge style.",
-          guitar: "60s clean strum.",
-          ukulele: "Easy listening.",
-        },
-        visual_chord: "Maj6",
-        key_traits: ["Sampling", "French Pop", "Kitsch"],
-      },
-      {
-        id: "j-fusion",
-        name: "J-Fusion",
-        bpm: "Fast",
-        timing: "4/4",
-        description:
-          "Technical virtuosity meets pop melody (Casiopea).",
-        progression: "Mario Cadence",
-        progressionNote:
-          "bVI – bVII – I. Bright digital piano.",
-        instruments: {
-          piano: "Bright digital patches.",
-          guitar: "High-speed alternate picking.",
-          ukulele: "N/A",
-        },
-        visual_chord: "Sus4",
-        key_traits: ["Technical", "Melodic", "Speed"],
-      },
-      {
-        id: "japanese-boogie",
-        name: "Japanese Boogie",
-        bpm: "105-115",
-        timing: "4/4",
-        description:
-          "The funkier side of City Pop.",
-        progression: "Funk Vamps",
-        progressionNote:
-          "Heavy emphasis on octaves and syncopation.",
-        instruments: {
-          piano: "Synth bass lines.",
-          guitar: "Cutting funk rhythm.",
-          ukulele: "Percussive.",
-        },
-        visual_chord: "Dom9",
-        key_traits: ["Octaves", "Syncopation", "Funk"],
+        key_traits: ["Synths", "Arpeggiators", "Precision"],
       },
       {
         id: "anime-music",
@@ -1019,256 +649,159 @@ const phases: Phase[] = [
         bpm: "Fast",
         timing: "4/4",
         description:
-          "Harmonic language of 80s/90s themes.",
-        progression: "Secondary Dominants",
+          "High-energy intros and themes with modulations and big melodies.",
+        key: "E Major (example)",
+        progression: "I – V – vi – III – IV – I – IV – V",
         progressionNote:
-          "Driving modulation. Identical to City Pop/Fusion.",
+          "Diatonic with occasional secondary dominants; modulations common at last chorus.",
         instruments: {
-          piano: "Driving accompaniment.",
-          guitar: "Power chords + Jazz.",
-          ukulele: "Melodic.",
+          piano: "Driving rhythmic support, octave figures, and countermelodies.",
+          guitar: "Rock rhythm + melodic leads.",
+          ukulele: "Melodic support or simplified chords.",
         },
         visual_chord: "Maj7",
-        key_traits: ["Modulation", "Energy", "Fusion"],
+        key_traits: ["Modulation", "Big Hooks", "Fusion of Styles"],
       },
     ],
   },
   {
     id: "phase-5",
-    title: "Phase V: Modern Derivatives (90s-Present)",
+    title: "Phase V: Modern Derivatives (90s–Present)",
     genres: [
-      {
-        id: "acid-jazz",
-        name: "Acid Jazz",
-        bpm: "100-120",
-        timing: "4/4",
-        description:
-          "Revival of jazz-funk/soul-jazz in UK club scene.",
-        progression: "ii7 - V7 loops",
-        progressionNote:
-          "Altered tensions (V7alt). Sliding Min11 chords.",
-        instruments: {
-          piano: "Chromatic planing.",
-          guitar: "Wah-wah.",
-          ukulele: "Jazz chords.",
-        },
-        visual_chord: "min9",
-        key_traits: ["Club Scene", "Altered Tensions", "Loops"],
-      },
-      {
-        id: "new-jack-swing",
-        name: "New Jack Swing",
-        bpm: "100-110",
-        timing: "4/4 (Swing Quantize)",
-        description:
-          "R&B fused with Hip-Hop swing beats (Teddy Riley).",
-        progression: "Orchestral Hits",
-        progressionNote:
-          "Sharp percussive hits (Orch5). 55-65% swing.",
-        instruments: {
-          piano: "Staccato synth hits.",
-          guitar: "Minimal funk.",
-          ukulele: "Swing strum.",
-        },
-        visual_chord: "Dom7",
-        key_traits: ["Swing Quantize", "Orch Hits", "R&B"],
-      },
       {
         id: "neo-soul",
         name: "Neo-Soul",
-        bpm: "80-95",
-        timing: "4/4 (Drunk Beat)",
+        bpm: "80–95",
+        timing: "4/4 (Drunk Feel)",
         description:
-          "Hybrid of 70s soul and 90s hip-hop.",
+          "Dilla-influenced drums, Rhodes keys, and min9 / min11 harmony.",
         key: "F Minor (example)",
-        progression: "Min9 / Min11 slides",
+        progression: "i9 – iv11",
         progressionNote:
-          "Ambiguous quartal voicings and laid-back 'drunk' feel.",
+          "Two-chord vamps with heavy color tones. Feel > complexity.",
         progressionChords: [
           {
             degree: "i9",
             symbol: "Fm9",
             shape: "min9",
-            note: "Warm tonic center; often voiced with clustered inner tones.",
+            note: "Warm tonic, often voiced very close with clustered tones.",
           },
           {
             degree: "iv11",
             symbol: "Bbm11",
             shape: "min9",
-            note: "Subdominant color; supports that hazy, suspended quality.",
+            note: "Subdominant color, keeps things floating and unresolved.",
           },
         ],
         instruments: {
-          piano: "Rhodes with tremolo.",
-          guitar: "Hendrix Grip (Thumb bass).",
-          ukulele: "Fingerstyle soul.",
+          piano: "Rhodes with tremolo, lazy behind-the-beat comping.",
+          guitar: "Thumb-over bass chords, lots of 9/11/13.",
+          ukulele: "Min9/min11 shapes where possible; soft fingerstyle.",
         },
         visual_chord: "min9",
-        key_traits: ["Drunk Feel", "Behind the Grid", "Warmth"],
+        key_traits: ["Drunk Groove", "Extended Minor Chords", "Warmth"],
+        theoryNotes: [
+          "Kick and snare feel late; don’t quantize everything to the grid.",
+          "Tensions (9, 11, 13) are basically mandatory.",
+        ],
       },
       {
-        id: "hip-hop",
-        name: "Hip-Hop (Golden Age)",
-        bpm: "90-100",
-        timing: "4/4",
-        description:
-          "Sampling Jazz records (A Tribe Called Quest).",
-        progression: "Recontextualization",
-        progressionNote:
-          "Looping ii-V to create static minor grooves.",
-        instruments: {
-          piano: "Sampled loops.",
-          guitar: "Sampled licks.",
-          ukulele: "N/A",
-        },
-        visual_chord: "min7",
-        key_traits: ["Sampling", "Loops", "Jazz Rap"],
-      },
-      {
-        id: "lo-fi",
+        id: "lofi",
         name: "Lo-Fi Hip Hop",
-        bpm: "70-90",
-        timing: "4/4 Swing",
+        bpm: "70–90",
+        timing: "4/4 (Swing)",
         description:
-          "The study beat genre. Jazz samples slowed down.",
+          "Study beats: dusty jazz chords, low-passed drums, vinyl textures.",
         key: "C Minor (example)",
-        progression: "ii - V loops",
+        progression: "iiø7 – V7 – i9",
         progressionNote:
-          "Dusty texture. Simple jazz loops that often avoid landing firmly on I.",
+          "Jazz minor ii–V–i, but often looped without strong resolution.",
         progressionChords: [
           {
             degree: "iiø7",
-            symbol: "Dm7b5",
+            symbol: "Dm7♭5",
             shape: "m7b5",
-            note: "Half-diminished ii; melancholic and unstable.",
+            note: "Half-diminished ii; built from the Locrian mode.",
           },
           {
             degree: "V7",
             symbol: "G7",
             shape: "Dom7",
-            note: "Dominant often left unresolved or looped for perpetual tension.",
+            note: "Can be altered (♭9/#9/♭13) or left plain.",
           },
           {
             degree: "i9",
             symbol: "Cm9",
             shape: "min9",
-            note: "When used, gives the 'ahh we finally landed' moment.",
+            note: "Minor tonic with rich color tones; classic lofi pad voicing.",
           },
         ],
         instruments: {
-          piano: "Detuned, wow/flutter.",
-          guitar: "Shell voicings.",
-          ukulele: "Soft thumb strum.",
+          piano: "Detuned, low-passed chords with soft attacks.",
+          guitar: "Very simple shell voicings, lots of space.",
+          ukulele: "Soft thumb-only strums or broken chords.",
         },
         visual_chord: "min9",
-        key_traits: ["Vinyl Crackle", "Nostalgia", "Simplicity"],
+        key_traits: ["Vinyl Crackle", "Low-Pass", "Simple Loops"],
       },
       {
         id: "future-funk",
         name: "Future Funk",
-        bpm: "120-130",
+        bpm: "120–130",
         timing: "4/4 (Dance)",
         description:
-          "High-energy dance music built from City Pop.",
-        key: "A Minor (Royal Road samples)",
-        progression: "Sampled Loops",
+          "Sped-up City Pop samples with sidechain compression and bright mix.",
+        key: "A Minor (example Royal Road source)",
+        progression: "Sample-based Royal Road loops",
         progressionNote:
-          "Sidechain compression is the instrument; often based on sped-up City Pop Royal Road.",
+          "Often chopped directly from City Pop Royal Road progressions and looped.",
         progressionChords: [
           {
             degree: "IVmaj7",
             symbol: "Fmaj7",
             shape: "Maj7",
-            note: "Source City Pop flavor; bright and nostalgic.",
+            note: "Bright source chord from original City Pop tracks.",
           },
           {
             degree: "V7",
             symbol: "G7",
             shape: "Dom7",
-            note: "Driving dominant; pushes the loop forward.",
+            note: "Drives the dance energy forward.",
           },
           {
             degree: "iii7",
             symbol: "Em7",
             shape: "min7",
-            note: "Keeps motion smooth while feeling slightly bittersweet.",
+            note: "Connective glue in the loop.",
           },
           {
             degree: "vi",
             symbol: "Am7",
             shape: "min7",
-            note: "Minor home; frequently chopped and sidechained.",
+            note: "Minor home base; often heavily sidechained.",
           },
         ],
         instruments: {
-          piano: "Chopped samples.",
-          guitar: "Nile Rodgers loops.",
-          ukulele: "N/A",
+          piano: "Mostly sampled; new parts are usually synth stabs.",
+          guitar: "Chopped Nile Rodgers-style loops.",
+          ukulele: "If used, keeps to rhythmic comping.",
         },
         visual_chord: "Maj7",
-        key_traits: ["Sidechain", "Sped-up", "Anime"],
-      },
-      {
-        id: "vaporwave",
-        name: "Vaporwave",
-        bpm: "60-80",
-        timing: "4/4 (Slowed)",
-        description:
-          "Surrealist, slowed-down 'Mallsoft'.",
-        progression: "Screwed Samples",
-        progressionNote:
-          "Slowing smooth jazz to reveal grotesque textures.",
-        instruments: {
-          piano: "Time-stretched.",
-          guitar: "Slowed loops.",
-          ukulele: "N/A",
-        },
-        visual_chord: "Maj7",
-        key_traits: ["Mallsoft", "Slowed", "Surrealism"],
-      },
-      {
-        id: "nu-jazz",
-        name: "Nu-Jazz",
-        bpm: "Various",
-        timing: "Broken Beats",
-        description:
-          "Electronic production meets jazz improvisation.",
-        progression: "Syncopation",
-        progressionNote:
-          "Irregular drum patterns + Jazz harmony.",
-        instruments: {
-          piano: "Electronic keys.",
-          guitar: "Effects laden.",
-          ukulele: "Experimental.",
-        },
-        visual_chord: "11th",
-        key_traits: ["Broken Beats", "Electronic", "Improv"],
+        key_traits: ["Sidechain", "Samples", "High Energy"],
       },
     ],
   },
 ];
 
-// -----------------------------------------
-// HELPERS
-// -----------------------------------------
-
-const getCommonKeys = (genre: Genre): string[] => {
-  if (genre.keys && genre.keys.length > 0) return genre.keys;
-  if (genre.key) return [genre.key];
-  return ["C Major", "G Major", "F Major"];
-};
-
-// -----------------------------------------
-// SIDEBAR
-// -----------------------------------------
+/* ---------- SIDEBAR ---------- */
 
 interface SidebarProps {
   activeView: "genre" | "circle";
-  setActiveView: React.Dispatch<React.SetStateAction<"genre" | "circle">>;
+  setActiveView: (view: "genre" | "circle") => void;
   activeGenre: Genre;
-  setActiveGenre: React.Dispatch<React.SetStateAction<Genre>>;
+  setActiveGenre: (genre: Genre) => void;
   mobileMenuOpen: boolean;
-  setMobileMenuOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  setMobileMenuOpen: (open: boolean) => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -1278,91 +811,106 @@ const Sidebar: React.FC<SidebarProps> = ({
   setActiveGenre,
   mobileMenuOpen,
   setMobileMenuOpen,
-}) => (
-  <div
-    className={`fixed inset-y-0 left-0 z-40 w-72 bg-slate-900 border-r border-slate-700 transform transition-transform duration-300 ease-in-out ${
-      mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
-    } md:translate-x-0 flex flex-col`}
-  >
-    <div className="p-4 border-b border-slate-700 flex justify-between items-center bg-slate-950">
-      <div className="flex items-center gap-2 text-amber-400 font-bold text-lg">
-        <BookOpen className="h-6 w-6" />
-        <span>Theory Codex</span>
-      </div>
-      <button
-        onClick={() => setMobileMenuOpen(false)}
-        className="md:hidden text-slate-400"
-      >
-        <X className="h-6 w-6" />
-      </button>
-    </div>
-
-    <div className="flex-1 overflow-y-auto custom-scrollbar">
-      <div className="p-2">
+}) => {
+  return (
+    <div
+      className={`fixed inset-y-0 left-0 z-40 w-72 bg-slate-900 border-r border-slate-800 transform transition-transform duration-300 ease-in-out
+      ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full"} md:translate-x-0 flex flex-col`}
+    >
+      <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-950">
+        <div className="flex items-center gap-2 text-amber-400 font-bold text-lg">
+          <BookOpen className="h-6 w-6" />
+          <span>Theory Codex</span>
+        </div>
         <button
-          onClick={() => {
-            setActiveView("circle");
-            setMobileMenuOpen(false);
-          }}
-          className={`w-full text-left px-4 py-3 rounded-lg mb-4 flex items-center gap-3 font-semibold transition-all ${
-            activeView === "circle"
-              ? "bg-amber-500/10 text-amber-400 border border-amber-500/50"
-              : "text-slate-400 hover:bg-slate-800"
-          }`}
+          onClick={() => setMobileMenuOpen(false)}
+          className="md:hidden text-slate-400 hover:text-white"
         >
-          <Disc className="h-5 w-5" />
-          Circle of Fifths
+          <X className="h-6 w-6" />
         </button>
+      </div>
 
-        {phases.map((phase) => (
-          <div key={phase.id} className="mb-4">
-            <div className="px-3 py-2 text-xs font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-2">
-              <GitBranch className="h-3 w-3" />
-              {phase.title}
+      <div className="flex-1 overflow-y-auto custom-scrollbar">
+        <div className="p-3 space-y-4">
+          <button
+            onClick={() => {
+              setActiveView("circle");
+              setMobileMenuOpen(false);
+            }}
+            className={`w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 font-semibold text-sm transition-all 
+            ${
+              activeView === "circle"
+                ? "bg-amber-500/10 text-amber-300 border border-amber-500/50 shadow-lg"
+                : "text-slate-300 hover:bg-slate-800 hover:text-white"
+            }`}
+          >
+            <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-800 text-[10px] font-mono">
+              12
+            </span>
+            Circle of Fifths
+          </button>
+
+          {phases.map((phase) => (
+            <div key={phase.id} className="space-y-1">
+              <div className="px-3 py-2 text-[10px] font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-2">
+                <GitBranch className="h-3 w-3" />
+                {phase.title}
+              </div>
+              <ul className="space-y-1">
+                {phase.genres.map((genre) => {
+                  const isActive =
+                    activeView === "genre" && activeGenre.id === genre.id;
+                  return (
+                    <li key={genre.id}>
+                      <button
+                        onClick={() => {
+                          setActiveGenre(genre);
+                          setActiveView("genre");
+                          setMobileMenuOpen(false);
+                        }}
+                        className={`w-full text-left px-4 py-2 text-xs flex items-center justify-between rounded-md transition-colors
+                        ${
+                          isActive
+                            ? "bg-indigo-600 text-white shadow-lg"
+                            : "text-slate-300 hover:bg-slate-800 hover:text-white"
+                        }`}
+                      >
+                        <span className="truncate">{genre.name}</span>
+                        {isActive && (
+                          <ChevronRight className="h-3 w-3 flex-shrink-0" />
+                        )}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
             </div>
-            <ul>
-              {phase.genres.map((genre) => (
-                <li key={genre.id}>
-                  <button
-                    onClick={() => {
-                      setActiveGenre(genre);
-                      setActiveView("genre");
-                      setMobileMenuOpen(false);
-                    }}
-                    className={`w-full text-left px-4 py-2 text-sm flex items-center justify-between transition-colors rounded-md mx-1 w-[95%] ${
-                      activeView === "genre" && activeGenre.id === genre.id
-                        ? "bg-indigo-600 text-white shadow-lg"
-                        : "text-slate-300 hover:bg-slate-800 hover:text-white"
-                    }`}
-                  >
-                    <span className="truncate">{genre.name}</span>
-                    {activeView === "genre" &&
-                      activeGenre.id === genre.id && (
-                        <ChevronRight className="h-3 w-3" />
-                      )}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
+          ))}
+        </div>
+      </div>
+
+      <div className="p-3 border-t border-slate-800 text-[10px] text-slate-500 text-center">
+        v3.2.0 • Workstation Layout
       </div>
     </div>
+  );
+};
 
-    <div className="p-4 border-t border-slate-800 text-xs text-slate-500 text-center">
-      v3.1.0 • Complete Edition
-    </div>
-  </div>
-);
+/* ---------- HELPERS ---------- */
 
-// -----------------------------------------
-// MAIN APP
-// -----------------------------------------
+const getCommonKeys = (genre: Genre): string[] => {
+  if (genre.keys && genre.keys.length > 0) return genre.keys;
+  if (genre.key) return [genre.key];
+  // sane, non-dumb defaults
+  return ["C Major", "G Major", "F Major"];
+};
+
+/* ---------- MAIN APP ---------- */
 
 const MusicCodexApp: React.FC = () => {
   const [activeView, setActiveView] = useState<"genre" | "circle">("genre");
   const [activeGenre, setActiveGenre] = useState<Genre>(
-    phases[3].genres[2] // Default to City Pop
+    phases[3].genres[0] // Default to City Pop
   );
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -1378,14 +926,14 @@ const MusicCodexApp: React.FC = () => {
       />
 
       {/* Mobile top bar */}
-      <div className="md:hidden fixed top-0 w-full bg-slate-900/95 backdrop-blur border-b border-slate-700 p-4 flex justify-between items-center z-30">
-        <div className="flex items-center gap-2 text-amber-400 font-bold">
+      <div className="md:hidden fixed top-0 w-full bg-slate-900/95 backdrop-blur border-b border-slate-800 px-4 py-3 flex justify-between items-center z-30">
+        <div className="flex items-center gap-2 text-amber-400 font-bold text-sm">
           <BookOpen className="h-5 w-5" />
           <span>Codex</span>
         </div>
         <button
           onClick={() => setMobileMenuOpen(true)}
-          className="text-white p-1 hover:bg-slate-800 rounded"
+          className="text-slate-100 p-1 rounded hover:bg-slate-800"
         >
           <Menu className="h-6 w-6" />
         </button>
@@ -1393,56 +941,54 @@ const MusicCodexApp: React.FC = () => {
 
       <main className="md:ml-72 min-h-screen transition-all duration-500">
         {activeView === "circle" ? (
-          <div className="p-6 md:p-12 pt-24 md:pt-12 flex flex-col justify-center min-h-screen">
+          <div className="pt-20 md:pt-10 px-3 sm:px-6 lg:px-10 w-full max-w-screen-2xl mx-auto flex items-stretch">
             <CircleOfFifthsTool />
           </div>
         ) : (
-          <div className="p-6 md:p-12 pt-24 md:pt-12 max-w-5xl mx-auto">
+          <div className="pt-20 md:pt-10 px-3 sm:px-6 lg:px-10 w-full max-w-screen-2xl mx-auto">
             {/* Breadcrumb */}
-            <div className="flex items-center gap-2 text-xs font-mono text-slate-500 mb-6">
+            <div className="flex items-center gap-2 text-[10px] md:text-xs font-mono text-slate-500 mb-4 md:mb-6">
               <span>codex</span>
               <ChevronRight className="h-3 w-3" />
               <span>{activeGenre.id}</span>
             </div>
 
             {/* Header */}
-            <header className="mb-8 border-b border-slate-800 pb-8">
-              <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-                <div>
-                  <h1 className="text-4xl md:text-5xl font-black text-white mb-3 tracking-tight leading-tight">
+            <header className="mb-6 md:mb-8 border-b border-slate-800 pb-6 md:pb-8">
+              <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 md:gap-6">
+                <div className="flex-1 min-w-0">
+                  <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white mb-2 tracking-tight leading-tight">
                     {activeGenre.name}
                   </h1>
-                  <p className="text-lg text-slate-400 max-w-2xl leading-relaxed">
+                  <p className="text-sm sm:text-base text-slate-400 max-w-2xl leading-relaxed">
                     {activeGenre.description}
                   </p>
 
                   {activeGenre.key && (
-                    <p className="mt-3 text-sm font-mono text-slate-300">
+                    <p className="mt-3 text-xs sm:text-sm font-mono text-slate-300">
                       Primary key:{" "}
-                      <span className="text-indigo-300">
-                        {activeGenre.key}
-                      </span>
+                      <span className="text-indigo-300">{activeGenre.key}</span>
                     </p>
                   )}
                 </div>
 
                 <div className="flex flex-wrap gap-2 md:justify-end">
-                  <span className="px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full text-xs font-bold text-amber-400 flex items-center gap-1">
+                  <span className="px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full text-[10px] sm:text-xs font-bold text-amber-300 flex items-center gap-1">
                     <Clock className="h-3 w-3" />
                     {activeGenre.bpm} BPM
                   </span>
-                  <span className="px-3 py-1 bg-purple-500/10 border border-purple-500/20 rounded-full text-xs font-bold text-purple-400 flex items-center gap-1">
+                  <span className="px-3 py-1 bg-purple-500/10 border border-purple-500/20 rounded-full text-[10px] sm:text-xs font-bold text-purple-300 flex items-center gap-1">
                     <FileText className="h-3 w-3" />
                     {activeGenre.timing}
                   </span>
                 </div>
               </div>
 
-              <div className="flex flex-wrap gap-2 mt-6">
+              <div className="flex flex-wrap gap-2 mt-4">
                 {activeGenre.key_traits.map((trait, idx) => (
                   <span
                     key={idx}
-                    className="px-2 py-1 bg-slate-800 border border-slate-700 rounded text-xs font-medium text-slate-400 hover:text-white transition-colors cursor-default"
+                    className="px-2 py-1 bg-slate-800 border border-slate-700 rounded text-[10px] sm:text-xs font-medium text-slate-400 hover:text-white transition-colors cursor-default"
                   >
                     #{trait}
                   </span>
@@ -1451,36 +997,42 @@ const MusicCodexApp: React.FC = () => {
             </header>
 
             {/* Main layout */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,2.1fr)_minmax(260px,1fr)] gap-6 lg:gap-8">
               {/* Left: theory + visualizer */}
-              <div className="lg:col-span-2 space-y-8">
+              <div className="space-y-6 lg:space-y-8">
                 {/* Harmonic Analysis */}
                 <section>
-                  <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                  <h2 className="text-lg sm:text-xl font-bold text-white mb-3 flex items-center gap-2">
                     <Search className="h-5 w-5 text-indigo-400" />
                     Harmonic Analysis
                   </h2>
                   <div className="bg-slate-900 rounded-lg border border-slate-800 overflow-hidden">
-                    <div className="bg-slate-950 px-4 py-2 border-b border-slate-800 flex justify-between items-center">
-                      <span className="text-xs font-mono text-slate-500 uppercase">
+                    <div className="bg-slate-950 px-3 sm:px-4 py-2 border-b border-slate-800 flex justify-between items-center">
+                      <span className="text-[10px] sm:text-xs font-mono text-slate-500 uppercase">
                         Core Progression
                       </span>
-                      <Copy
-                        className="h-4 w-4 text-slate-600 cursor-pointer hover:text-white transition-colors"
+                      <button
                         onClick={() =>
                           navigator.clipboard.writeText(
                             activeGenre.progression
                           )
                         }
-                      />
+                        className="text-slate-500 hover:text-white transition-colors"
+                        title="Copy progression"
+                      >
+                        <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs">
+                          <span>copy</span>
+                          <Key className="h-3 w-3" />
+                        </span>
+                      </button>
                     </div>
-                    <div className="p-6">
-                      <code className="text-2xl md:text-3xl text-emerald-400 font-mono block mb-4 font-bold">
+                    <div className="p-4 sm:p-6 space-y-3">
+                      <code className="text-xl sm:text-2xl md:text-3xl text-emerald-400 font-mono block font-bold">
                         {activeGenre.progression}
                       </code>
                       <div className="flex gap-3 items-start">
                         <Info className="h-5 w-5 text-indigo-400 shrink-0 mt-0.5" />
-                        <p className="text-slate-400 text-sm italic leading-relaxed">
+                        <p className="text-slate-400 text-xs sm:text-sm italic leading-relaxed">
                           {activeGenre.progressionNote}
                         </p>
                       </div>
@@ -1488,13 +1040,13 @@ const MusicCodexApp: React.FC = () => {
                   </div>
                 </section>
 
-                {/* (Optional) extra educational notes per genre */}
-                {activeGenre.theoryNotes && (
+                {/* Theory Notes */}
+                {activeGenre.theoryNotes && activeGenre.theoryNotes.length > 0 && (
                   <section>
-                    <h3 className="text-sm font-semibold text-slate-200 mb-2">
-                      Writing Tips / Theory
+                    <h3 className="text-xs sm:text-sm font-semibold text-slate-200 mb-2">
+                      Writing Tips / Theory Notes
                     </h3>
-                    <ul className="list-disc pl-5 space-y-1 text-slate-400 text-sm">
+                    <ul className="list-disc pl-4 sm:pl-5 space-y-1 text-slate-400 text-xs sm:text-sm">
                       {activeGenre.theoryNotes.map((note, idx) => (
                         <li key={idx}>{note}</li>
                       ))}
@@ -1507,20 +1059,30 @@ const MusicCodexApp: React.FC = () => {
               </div>
 
               {/* Right: Reference lab + keys */}
-              <div className="space-y-6">
+              <aside className="space-y-5 lg:space-y-6">
                 {/* Reference Lab */}
-                <div className="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-2xl p-6 shadow-xl text-white relative overflow-hidden group">
-                  <div className="absolute top-0 right-0 p-32 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
-                  <div className="relative z-10">
-                    <div className="flex items-center gap-3 mb-4">
+                <div className="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-2xl p-5 sm:p-6 shadow-xl text-white relative overflow-hidden">
+                  <div className="absolute top-0 right-0 p-24 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+                  <div className="relative z-10 space-y-4">
+                    <div className="flex items-center gap-3">
                       <div className="bg-white/20 p-2 rounded-lg">
                         <Headphones className="h-6 w-6" />
                       </div>
-                      <span className="font-bold text-lg">Reference Lab</span>
+                      <div>
+                        <span className="font-bold text-base sm:text-lg">
+                          Reference Lab
+                        </span>
+                        <p className="text-[10px] text-indigo-100/80">
+                          Listen while you analyze.
+                        </p>
+                      </div>
                     </div>
-                    <p className="text-indigo-100 text-sm mb-6">
-                      Generate a curated playlist of the best{" "}
-                      {activeGenre.name} tracks.
+                    <p className="text-indigo-100 text-xs sm:text-sm">
+                      Open a curated search for essential{" "}
+                      <span className="font-semibold">
+                        {activeGenre.name}
+                      </span>{" "}
+                      tracks to hear these progressions in the wild.
                     </p>
                     <a
                       href={`https://www.youtube.com/results?search_query=best+${activeGenre.name.replace(
@@ -1529,7 +1091,7 @@ const MusicCodexApp: React.FC = () => {
                       )}+mix`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="w-full bg-white text-indigo-900 py-3 rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-indigo-50 transition-colors shadow-lg"
+                      className="w-full bg-white text-indigo-900 py-2.5 rounded-lg text-xs sm:text-sm font-bold flex items-center justify-center gap-2 hover:bg-indigo-50 transition-colors shadow-lg"
                     >
                       <Play className="h-4 w-4 fill-current" />
                       Listen on YouTube
@@ -1538,22 +1100,22 @@ const MusicCodexApp: React.FC = () => {
                 </div>
 
                 {/* Common Keys */}
-                <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-5">
-                  <h3 className="text-slate-400 text-xs font-bold uppercase mb-4 flex items-center gap-2">
+                <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4 sm:p-5">
+                  <h3 className="text-slate-400 text-[10px] sm:text-xs font-bold uppercase mb-3 flex items-center gap-2">
                     <Key className="h-4 w-4" /> Common Keys
                   </h3>
                   <div className="flex flex-wrap gap-2">
                     {getCommonKeys(activeGenre).map((k) => (
                       <span
                         key={k}
-                        className="bg-slate-900 text-slate-300 px-3 py-1.5 rounded text-sm font-mono border border-slate-800"
+                        className="bg-slate-950 text-slate-200 px-2.5 py-1 rounded text-[10px] sm:text-xs font-mono border border-slate-700"
                       >
                         {k}
                       </span>
                     ))}
                   </div>
                 </div>
-              </div>
+              </aside>
             </div>
           </div>
         )}

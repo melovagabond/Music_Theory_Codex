@@ -189,6 +189,17 @@ npm run preview
 
 ---
 
+### Circle of Fifths Lab
+
+An interactive Circle of Fifths view designed for writers, not just theory nerds.
+
+- Click any key on the **wheel** (or the key pills under it) to select a tonal center.
+- See its **major scale**, **relative minor**, and full **diatonic chord family** (I–ii–iii–IV–V–vi–vii°).
+- Get **common progressions** (ii–V–I, I–vi–IV–V, Royal Road-style changes, etc.).
+- Per-key **instrument tips** for piano, guitar, and ukulele so you can immediately translate the theory into voicings and patterns.
+
+---
+
 ## 🧱 Roadmap (Rough, Like a First Mix)
 
 * [ ] Add saved **“progression presets”** per genre (I–vi–IV–V, Royal Road, Rhythm Changes, etc.).
