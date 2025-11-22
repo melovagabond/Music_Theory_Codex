@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Info, Piano, Guitar, Ukulele } from "lucide-react";
+import { Info, Piano, Guitar, Music2 } from "lucide-react";
 
 type KeyInfo = {
   name: string;          // "C"
@@ -49,7 +49,7 @@ export const CircleOfFifthsTool: React.FC = () => {
           clockwise moves you up a perfect fifth. It tells you which keys are
           harmonically close, which chords live inside a key, and where the
           relative minor sits. It’s the backbone behind ii–V–I in Jazz and the
-          Royal Road progression in City Pop (IVmaj7 – V7 – iii7 – vi).:contentReference[oaicite:3]{index=3}
+          Royal Road progression in City Pop (IVmaj7 – V7 – iii7 – vi).:contentReference[oaicite:3]
         </p>
         <ul className="text-sm text-slate-400 space-y-1 list-disc pl-5">
           <li>
@@ -126,14 +126,14 @@ export const CircleOfFifthsTool: React.FC = () => {
             <ul className="space-y-1 text-slate-400 text-xs">
               <li>
                 <span className="font-mono text-emerald-300">ii – V – I</span>{" "}
-                (Jazz): walk anticlockwise around the circle for strong resolutions.:contentReference[oaicite:4]{index=4}
+                (Jazz): walk anticlockwise around the circle for strong resolutions.:contentReference[oaicite:4]
               </li>
               <li>
                 <span className="font-mono text-emerald-300">
                   IVmaj7 – V7 – iii7 – vi
                 </span>{" "}
                 (Royal Road / City Pop): emotional, forward-moving chain of
-                dominants.:contentReference[oaicite:5]{index=5}
+                dominants.:contentReference[oaicite:5]
               </li>
               <li>
                 <span className="font-mono text-emerald-300">I – IV – V</span>{" "}
@@ -160,7 +160,7 @@ export const CircleOfFifthsTool: React.FC = () => {
           <p className="text-[11px] text-slate-400 mb-2">
             Treat left hand as bass (roots) and right hand as close-position
             triads. For jazzier stuff, turn I into <span className="font-mono">IMaj7</span>{" "}
-            and V into <span className="font-mono">V7</span>.:contentReference[oaicite:6]{index=6}
+            and V into <span className="font-mono">V7</span>.:contentReference[oaicite:6]
           </p>
           <div className="grid grid-cols-3 gap-2 text-[11px] font-mono text-slate-200">
             {selected.primaryTriads.map(label => (
@@ -188,7 +188,7 @@ export const CircleOfFifthsTool: React.FC = () => {
             <span className="font-mono">I: 3rd &amp; 7th</span>,{" "}
             <span className="font-mono">IV: 3rd &amp; 7th</span>,{" "}
             <span className="font-mono">V: 3rd &amp; b7</span>. This is the
-            Freddie Green / comping approach.:contentReference[oaicite:7]{index=7}
+            Freddie Green / comping approach.:contentReference[oaicite:7]
           </p>
           <ul className="text-[11px] text-slate-300 space-y-1">
             {selected.primaryTriads.map(label => (
@@ -203,14 +203,14 @@ export const CircleOfFifthsTool: React.FC = () => {
         {/* Ukulele */}
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-2">
           <div className="flex items-center gap-2 text-slate-200 mb-1">
-            <Ukulele className="h-4 w-4 text-amber-400" />
+            <Music2 className="h-4 w-4 text-amber-400" />
             <span className="text-sm font-semibold">Ukulele – Close Voicings</span>
           </div>
           <p className="text-[11px] text-slate-400 mb-2">
             Think of uke as a tiny piano right hand: close voicings and smooth
             motion. In Jazz/Funk, lean on <span className="font-mono">6</span>,{" "}
             <span className="font-mono">7</span>, and{" "}
-            <span className="font-mono">9</span> extensions.:contentReference[oaicite:8]{index=8}
+            <span className="font-mono">9</span> extensions.:contentReference[oaicite:8]
           </p>
           <ul className="text-[11px] text-slate-300 space-y-1">
             {selected.primaryTriads.map(label => (

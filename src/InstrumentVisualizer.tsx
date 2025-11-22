@@ -1,6 +1,6 @@
 import React from "react";
-import { Piano, Guitar, Ukulele, ChevronRight } from "lucide-react";
-import type { Genre, ProgressionChord } from "./types"; // adjust path
+import { Piano, Guitar, Music2, ChevronRight } from "lucide-react";
+import type { Genre, ProgressionChord } from "./App"; // adjust path
 
 interface InstrumentVisualizerProps {
   genre: Genre;
@@ -123,7 +123,7 @@ export const InstrumentVisualizer: React.FC<InstrumentVisualizerProps> = ({
               </div>
 
               <div className="flex items-start gap-2">
-                <Ukulele className="h-4 w-4 text-amber-400 mt-0.5" />
+                <Music2 className="h-4 w-4 text-amber-400 mt-0.5" />
                 <div>
                   <div className="font-semibold text-slate-200">Ukulele</div>
                   <div className="text-slate-400">
