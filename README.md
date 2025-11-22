@@ -127,7 +127,7 @@ Use it as:
 
 ## 🐳 Docker Deployment
 
-This project includes a production-ready `Dockerfile` using a multi-stage build process (`node:builder` → `nginx:alpine`).
+A multi-stage Dockerfile builds the Vite app with Node 20 and serves it from Nginx. A `.dockerignore` keeps the build context lean and the Nginx config lives in `docker/nginx.conf`.
 
 1. **Build the image**
 
@@ -138,12 +138,12 @@ This project includes a production-ready `Dockerfile` using a multi-stage build 
 2. **Run the container**
 
    ```bash
-   docker run -d -p 8080:80 --name music-codex music-codex
+   docker run --rm -p 8080:80 --name music-codex music-codex
    ```
 
 3. **Access the app**
 
-   Navigate to [http://localhost:8080](http://localhost:8080).
+   Navigate to [http://localhost:8080](http://localhost:8080). Check `docker logs music-codex` if you need to confirm the container healthcheck is passing.
 
 ---
 
@@ -152,16 +152,23 @@ This project includes a production-ready `Dockerfile` using a multi-stage build 
 ```text
 music-theory-codex/
 ├── src/
-│   ├── App.tsx          # Main application logic & Data Engine (50+ genres)
-│   ├── main.tsx         # React entry point
-│   └── index.css        # Tailwind global styles
-├── public/              # Static assets (favicon, og images, etc.)
-├── Dockerfile           # Multi-stage build configuration
-├── nginx.conf           # SPA configuration for Nginx
-├── package.json         # Dependencies and scripts
-├── tsconfig.json        # TypeScript configuration
-├── vite.config.ts       # Vite bundler configuration
-└── README.md            # Project documentation
+│   ├── App.tsx              # Main application shell
+│   ├── CircleOfFifthsTool.tsx # Circle of Fifths component
+│   ├── InstrumentVisualizer.tsx # Instrument rendering logic
+│   ├── data/
+│   │   └── phases.ts        # Genre phases and progression data
+│   ├── types/
+│   │   └── codex.ts         # Shared domain types
+│   ├── index.css            # Tailwind global styles
+│   └── main.tsx             # React entry point
+├── docker/
+│   └── nginx.conf           # SPA configuration for Nginx
+├── Dockerfile               # Multi-stage build configuration
+├── .dockerignore            # Build context exclusions
+├── package.json             # Dependencies and scripts
+├── tsconfig.json            # TypeScript configuration
+├── vite.config.js           # Vite bundler configuration
+└── README.md                # Project documentation
 ```
 
 ---
@@ -173,12 +180,6 @@ Common scripts (check `package.json` for the full list):
 ```bash
 # Run dev server
 npm run dev
-
-# Type-check
-npm run typecheck
-
-# Lint
-npm run lint
 
 # Production build
 npm run build
