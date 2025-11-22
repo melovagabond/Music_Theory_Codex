@@ -26,9 +26,15 @@ export interface Genre {
   theoryNotes?: string[]; // extra educational bullets
 }
 
+export interface PhaseHistory {
+  summary: string;
+  highlights: string[];
+}
+
 export interface Phase {
   id: string;
   title: string;
+  history?: PhaseHistory;
   learning: string[];
   genres: Genre[];
 }
