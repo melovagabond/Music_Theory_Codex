@@ -3,10 +3,6 @@
 > A **docs-as-code** playground for harmonic archeology — from Ragtime and Bebop to City Pop, Future Funk, and modern EDM.
 
 <p align="center">
-  <img src="./logo.svg" alt="Open Source Music Theory Codex Logo" width="180" />
-</p>
-
-<p align="center">
   <a href="https://github.com/yourusername/music-theory-codex/actions">
     <img alt="CI Status" src="https://img.shields.io/github/actions/workflow/status/yourusername/music-theory-codex/ci.yml?label=CI&style=for-the-badge">
   </a>
@@ -18,13 +14,15 @@
   <img alt="PRs Welcome" src="https://img.shields.io/badge/PRs-Welcome-ff69b4?style=for-the-badge&logo=github">
 </p>
 
+<p align="center">
+  <img src="./logo.svg" alt="Open Source Music Theory Codex Logo" width="180" />
+</p>
+
 ---
 
 ## 📚 Overview
 
-The **Open Source Music Theory Codex** is a comprehensive, interactive repository for exploring music theory as if it were source code.
-
-This application traces the harmonic lineage of **70+ genres**, from the syncopated roots of **Ragtime** and **Jazz**, through the **Funk** and **AOR** era, to the sophisticated urban soundscapes of **City Pop**, **Shibuya-kei**, **Future Funk**, and **K-Pop**.
+The **Open Source Music Theory Codex** is a comprehensive, interactive repository for exploring music theory as if it were source code. It traces the harmonic lineage of **70+ genres**, from the syncopated roots of **Ragtime** and **Jazz**, through the **Funk** and **AOR** era, to the sophisticated urban soundscapes of **City Pop**, **Shibuya-kei**, **Future Funk**, and **K-Pop**.
 
 Use it as:
 
@@ -65,9 +63,9 @@ Use it as:
   - 🎻 **Ukulele:** Jazz and Funk voicing charts with re-entrant tuning logic.
 
 - **Interactive Circle of Fifths:** An SVG-based tool to visualize:
-  - Key signatures  
-  - Relative majors/minors  
-  - Modal borrowing and pivot keys  
+  - Key signatures
+  - Relative majors/minors
+  - Modal borrowing and pivot keys
 
 - **Audio Reference Lab:**
   - One-click generation of curated YouTube search queries for immediate listening examples.
@@ -88,6 +86,16 @@ Use it as:
 - **Deployment:** Docker (multi-stage Nginx build)
 - **Docs-as-Code:** Markdown + JSON/TS data models
 
+### Versions at a glance
+
+| Dependency | Version |
+| --- | --- |
+| React | 18.x |
+| TypeScript | 5.x |
+| Vite | 5.x |
+| Tailwind CSS | 3.x |
+| lucide-react | 0.554.x |
+
 ---
 
 ## 🚀 Getting Started
@@ -100,10 +108,11 @@ Use it as:
 ### Local Development
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/yourusername/music-theory-codex.git
    cd music-theory-codex
-    ```
+   ```
 
 2. **Install dependencies**
 
@@ -122,6 +131,15 @@ Use it as:
    ```
 
    Open [http://localhost:5173](http://localhost:5173) in your browser.
+
+### Production build
+
+```bash
+npm run build
+npm run preview   # Serves the built assets locally
+```
+
+`npm run build` runs TypeScript checks and bundles via Vite. Use `npm run preview` for a quick smoke test of the generated assets.
 
 ---
 
@@ -152,30 +170,30 @@ A multi-stage Dockerfile builds the Vite app with Node 20 and serves it from Ngi
 ```text
 music-theory-codex/
 ├── src/
-│   ├── App.tsx              # Main application shell
+│   ├── App.tsx                # Main application shell
 │   ├── CircleOfFifthsTool.tsx # Circle of Fifths component
 │   ├── InstrumentVisualizer.tsx # Instrument rendering logic
 │   ├── data/
-│   │   ├── chords.ts        # Chord shape data for each instrument
-│   │   └── phases.ts        # Genre phases and progression data (70+ genres)
+│   │   ├── chords.ts          # Chord shape data for each instrument
+│   │   └── phases.ts          # Genre phases and progression data (70+ genres)
 │   ├── types/
-│   │   └── codex.ts         # Shared domain types
-│   ├── index.css            # Tailwind global styles
-│   └── main.tsx             # React entry point
+│   │   └── codex.ts           # Shared domain types
+│   ├── index.css              # Tailwind global styles
+│   └── main.tsx               # React entry point
 ├── docker/
-│   └── nginx.conf           # SPA configuration for Nginx
-├── Dockerfile               # Multi-stage build configuration
-├── .dockerignore            # Build context exclusions
-├── index.html               # Vite HTML template
-├── logo.svg                 # Project mark used in the UI
-├── package-lock.json        # Locked dependency tree
-├── package.json             # Dependencies and scripts
-├── postcss.config.js        # Tailwind/PostCSS setup
-├── tailwind.config.js       # Tailwind theme configuration
-├── tsconfig.json            # TypeScript configuration
-├── tsconfig.node.json       # TS config for tooling
-├── vite.config.js           # Vite bundler configuration
-└── README.md                # Project documentation
+│   └── nginx.conf             # SPA configuration for Nginx
+├── Dockerfile                 # Multi-stage build configuration
+├── .dockerignore              # Build context exclusions
+├── index.html                 # Vite HTML template
+├── logo.svg                   # Project mark used in the UI
+├── package-lock.json          # Locked dependency tree
+├── package.json               # Dependencies and scripts
+├── postcss.config.js          # Tailwind/PostCSS setup
+├── tailwind.config.js         # Tailwind theme configuration
+├── tsconfig.json              # TypeScript configuration
+├── tsconfig.node.json         # TS config for tooling
+├── vite.config.js             # Vite bundler configuration
+└── README.md                  # Project documentation
 ```
 
 ---
@@ -205,6 +223,16 @@ An interactive Circle of Fifths view designed for writers, not just theory nerds
 - See its **major scale**, **relative minor**, and full **diatonic chord family** (I–ii–iii–IV–V–vi–vii°).
 - Get **common progressions** (ii–V–I, I–vi–IV–V, Royal Road-style changes, etc.).
 - Per-key **instrument tips** for piano, guitar, and ukulele so you can immediately translate the theory into voicings and patterns.
+
+---
+
+### Instrument Visualizer
+
+An instrument-first view of the chord data powering each genre.
+
+- Pick **piano**, **guitar**, or **ukulele** to see voicing fingerprints for each chord in the selected progression.
+- Toggle through genres/phases and watch the voicing set update in real time.
+- Cross-reference the Circle of Fifths lab to hear/see how a key center affects the grips you choose.
 
 ---
 
@@ -239,7 +267,8 @@ Guidelines:
 
 * Keep the code **typed** (TypeScript, not vibescript).
 * Keep UI **accessible** (labels, contrast, keyboard navigation).
-* If you add a new genre or concept, document it in the Codex.
+* Run `npm run build` before you push so CI stays green.
+* If you add a new genre or concept, document it in the Codex and keep data consistent with `src/types/codex.ts`.
 
 ---
 
@@ -254,11 +283,13 @@ Data compiled from the **Open Source Music Theory Codex** report, analyzing:
 
 And a whole lot of unnecessary time spent pausing songs on the exact right chord.
 
+---
+
 ## 📄 License
 
 This project is released under the **Creative Commons CC0 1.0 Universal** license.
 
 You can copy, modify, distribute, and use the work — even for commercial purposes — without asking permission.
 
-For details, see:  
+For details, see:
 **[CC0 1.0 Universal Legal Code](https://creativecommons.org/publicdomain/zero/1.0/legalcode)**
