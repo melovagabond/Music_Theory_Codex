@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { Piano, Guitar, Music2, ChevronRight } from "lucide-react";
-import type { Genre, ProgressionChord } from "./App";
+import type { Genre, ProgressionChord } from "./types/codex";
 
 interface InstrumentVisualizerProps {
   genre: Genre;
