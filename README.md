@@ -41,6 +41,7 @@ Use it as:
 - [Project Structure](#-project-structure)
 - [Development Scripts](#-development-scripts)
 - [Using the App](#-using-the-app)
+- [MIDI Export Workflow](#-midi-export-workflow)
 - [Data Model](#-data-model)
 - [Design Notes](#-design-notes)
 - [Testing & Quality](#-testing--quality)
@@ -75,6 +76,10 @@ Use it as:
 - **Audio Reference Lab:**
   - One-click generation of curated YouTube search queries for immediate listening examples.
   - Genre + decade + harmonic concept = pre-baked search string.
+
+- **MIDI Export (beta):**
+  - Render any visible progression in the Instrument Visualizer into a downloadable `.mid` file.
+  - Uses the chord shapes already on screen so your DAW session matches the harmonic intent shown in the UI.
 
 - **Responsive UI:**
   - Modern Git documentation aesthetic (MkDocs/GitBook vibes).
@@ -248,6 +253,25 @@ npm run preview
 
 ---
 
+## 🎛️ MIDI Export Workflow
+
+The **Export MIDI** button in the Instrument Visualizer turns whatever progression is on screen into a DAW-ready file without leaving the browser.
+
+- **Where it lives:** In the Instrument Visualizer toolbar next to the step navigation controls.
+- **What it exports:** The active progression, including any auto-derived chords when a genre lacks explicit `progressionChords` metadata.
+- **How it builds notes:**
+  - Root detection parses the chord symbol (e.g., `Cmaj7`, `Abm9`) and maps it to MIDI note numbers.
+  - Intervals for each chord come from the same `CHORD_SHAPES` data used to draw the voicings, so the exported MIDI matches the on-screen shapes.
+  - A 120 BPM, 480 ticks-per-quarter template keeps timing predictable while remaining easy to stretch inside a DAW.
+- **File details:** Creates a single-track `.mid` file with note-on/note-off events per chord, using consistent velocity defaults for quick sketching.
+- **Workflow tips:**
+  - Drop the file into your DAW, quantize or humanize as needed, then swap the instrument patch to taste.
+  - Use the keyboard hotkeys (`A`–`G` layout) to audition alternate steps before exporting, keeping the performance loop tight.
+
+Future iterations will layer in per-step durations, swing/humanization controls, and multi-track exports for split voicings (bass + comping).
+
+---
+
 ## 🧱 Data Model
 
 - **Phases (`src/data/phases.ts`)** — structured by historical era; each phase holds genres, progressions, and citations for reference listening.
@@ -317,10 +341,20 @@ An instrument-first view of the chord data powering each genre.
 ## 🧱 Roadmap (Rough, Like a First Mix)
 
 * [ ] Add saved **“progression presets”** per genre (I–vi–IV–V, Royal Road, Rhythm Changes, etc.).
+  - Pair presets with genre/decade filters so the codex can surface common reharmonization moves by era.
+  - Save/load user-crafted variants to keep personal voicing choices in version control.
 * [ ] Add **MIDI export** of generated voicings/progressions.
+  - Surface tempo selector, swing/humanize toggles, and per-step duration controls.
+  - Add track splitting so bass notes, comping voicings, and melody guide tones land on separate channels.
+  - Expose download options from the Circle of Fifths lab to capture key-specific reharmonizations.
 * [ ] Add **keyboard overlay** for real-time highlighting from computer keyboard input.
+  - Overlay tooltips that explain which hotkey maps to which scale degree per active key.
+  - Optional “practice mode” that lights up the next degree in the flow for ear training.
 * [ ] Add **“Explain This Progression”** mode (annotated theory breakdown).
+  - Inline callouts that reference the genre’s hallmark voice-leading moves.
+  - Export the explanation alongside the MIDI as embedded lyrics/marker text for DAW users.
 * [ ] Add **offline mode** via service worker + local cache.
+  - Cache chord shape sprites and genre data to keep the codex browsable on the road.
 
 If you’re reading this and thinking “I could totally add one of these” — you’re correct, now you have homework.
 
