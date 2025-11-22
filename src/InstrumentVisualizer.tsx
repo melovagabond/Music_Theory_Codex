@@ -4,6 +4,7 @@ import type { Genre, ProgressionChord } from "./App";
 
 interface InstrumentVisualizerProps {
   genre: Genre;
+  chords?: ProgressionChord[];
 }
 
 // --- chord shape database ---
@@ -76,25 +77,39 @@ const splitProgression = (progression: string): string[] =>
     .map(p => p.trim())
     .filter(Boolean);
 
-const buildFallbackChords = (genre: Genre): ProgressionChord[] => {
+const guessShapeFromToken = (token: string): ChordShapeKey => {
+  const normalized = token.toLowerCase();
+
+  if (/m7b5|ø/.test(normalized)) return "m7b5";
+  if (/dim|°/.test(normalized)) return "dim7";
+  if (/sus/.test(normalized)) return "Sus4";
+  if (/6\/9/.test(normalized)) return "6/9";
+  if (/11/.test(normalized)) return "11th";
+  if (/9/.test(normalized)) {
+    return /m|min/.test(normalized) || /ii|iii|vi/.test(normalized)
+      ? "min9"
+      : "Dom9";
+  }
+  if (/v7/.test(normalized)) return "Dom7";
+  if (/ii|iii|iv|vi/.test(normalized)) return "min7";
+  return /v/.test(normalized) ? "Dom7" : "Maj7";
+};
+
+export const deriveProgressionChords = (
+  genre: Genre
+): ProgressionChord[] => {
+  if (genre.progressionChords && genre.progressionChords.length > 0) {
+    return genre.progressionChords;
+  }
+
   const pieces = splitProgression(genre.progression);
 
-  // Try to make some vaguely sane guesses instead of "no chords"
   return pieces.map((piece, idx) => {
-    const upper = piece.toUpperCase();
-    let degree = upper;
-    let shape: ChordShapeKey = "Maj7";
-
-    if (/ii|IV|IVM/.test(upper)) shape = "min7";
-    if (/V7|V$/i.test(upper)) shape = "Dom7";
-    if (/m7b5|ø/.test(upper)) shape = "m7b5";
-    if (/DIM|°/.test(upper)) shape = "dim7";
-    if (/9/.test(upper)) shape = "Dom9";
-    if (/6\/9/.test(upper)) shape = "6/9";
-    if (/SUS/.test(upper)) shape = "Sus4";
+    const shape = guessShapeFromToken(piece);
+    const degree = piece.toUpperCase();
 
     return {
-      degree: degree,
+      degree,
       symbol: piece,
       shape,
       note:
@@ -108,7 +123,7 @@ const buildFallbackChords = (genre: Genre): ProgressionChord[] => {
 // --- visual subcomponents ---
 
 // Piano: one-octave keyboard diagram
-const KeyboardDiagram: React.FC<{ intervals: number[] }> = ({ intervals }) => {
+const KeyboardDiagram: React.FC<{ intervals: readonly number[] }> = ({ intervals }) => {
   const active = useMemo(
     () => intervals.map(v => ((v % 12) + 12) % 12),
     [intervals]
@@ -127,7 +142,7 @@ const KeyboardDiagram: React.FC<{ intervals: number[] }> = ({ intervals }) => {
     <div className="relative w-full max-w-xs mx-auto h-24 select-none">
       {/* White keys */}
       <div className="absolute inset-0 flex">
-        {whiteNotes.map((note, idx) => {
+        {whiteNotes.map((note) => {
           const isActive = active.includes(note);
           return (
             <div
@@ -170,7 +185,7 @@ const KeyboardDiagram: React.FC<{ intervals: number[] }> = ({ intervals }) => {
 };
 
 // 6-string guitar fretboard (4-fret window)
-const GuitarFretboard: React.FC<{ frets: number[] }> = ({ frets }) => {
+const GuitarFretboard: React.FC<{ frets: readonly number[] }> = ({ frets }) => {
   const numericFrets = frets.filter(f => f > 0);
   const minFret = numericFrets.length ? Math.min(...numericFrets) : 1;
   const startFret = Math.max(1, minFret);
@@ -221,7 +236,7 @@ const GuitarFretboard: React.FC<{ frets: number[] }> = ({ frets }) => {
 };
 
 // 4-string uke fretboard (4-fret window)
-const UkeFretboard: React.FC<{ frets: number[] }> = ({ frets }) => {
+const UkeFretboard: React.FC<{ frets: readonly number[] }> = ({ frets }) => {
   const numericFrets = frets.filter(f => f > 0);
   const minFret = numericFrets.length ? Math.min(...numericFrets) : 1;
   const startFret = Math.max(1, minFret);
@@ -273,13 +288,12 @@ const UkeFretboard: React.FC<{ frets: number[] }> = ({ frets }) => {
 
 export const InstrumentVisualizer: React.FC<InstrumentVisualizerProps> = ({
   genre,
+  chords: providedChords,
 }) => {
-  const chords: ProgressionChord[] = useMemo(() => {
-    if (genre.progressionChords && genre.progressionChords.length > 0) {
-      return genre.progressionChords;
-    }
-    return buildFallbackChords(genre);
-  }, [genre]);
+  const chords: ProgressionChord[] = useMemo(
+    () => providedChords ?? deriveProgressionChords(genre),
+    [genre, providedChords]
+  );
 
   const [activeIndex, setActiveIndex] = useState(0);
   const active = chords[activeIndex] ?? chords[0];

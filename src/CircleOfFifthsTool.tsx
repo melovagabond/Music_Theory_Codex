@@ -120,7 +120,7 @@ const getMinorFunctionalChords = (key: CircleKey): CircleChord[] => [
 
 // --- VISUAL SUBCOMPONENTS (piano + fretboards) ---
 
-const KeyboardDiagram: React.FC<{ intervals: number[] }> = ({ intervals }) => {
+const KeyboardDiagram: React.FC<{ intervals: readonly number[] }> = ({ intervals }) => {
   const active = useMemo(
     () => intervals.map(v => ((v % 12) + 12) % 12),
     [intervals]
@@ -182,7 +182,7 @@ const KeyboardDiagram: React.FC<{ intervals: number[] }> = ({ intervals }) => {
   );
 };
 
-const GuitarFretboard: React.FC<{ frets: number[] }> = ({ frets }) => {
+const GuitarFretboard: React.FC<{ frets: readonly number[] }> = ({ frets }) => {
   const numericFrets = frets.filter(f => f > 0);
   const minFret = numericFrets.length ? Math.min(...numericFrets) : 1;
   const startFret = Math.max(1, minFret);
@@ -230,7 +230,7 @@ const GuitarFretboard: React.FC<{ frets: number[] }> = ({ frets }) => {
   );
 };
 
-const UkeFretboard: React.FC<{ frets: number[] }> = ({ frets }) => {
+const UkeFretboard: React.FC<{ frets: readonly number[] }> = ({ frets }) => {
   const numericFrets = frets.filter(f => f > 0);
   const minFret = numericFrets.length ? Math.min(...numericFrets) : 1;
   const startFret = Math.max(1, minFret);

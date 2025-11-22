@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   BookOpen,
   Menu,
@@ -14,7 +14,7 @@ import {
   Key,
 } from "lucide-react";
 import { CircleOfFifthsTool } from "./CircleOfFifthsTool";
-import { InstrumentVisualizer } from "./InstrumentVisualizer";
+import { InstrumentVisualizer, deriveProgressionChords } from "./InstrumentVisualizer";
 
 /* ---------- TYPES ---------- */
 
@@ -49,6 +49,7 @@ export interface Genre {
 export interface Phase {
   id: string;
   title: string;
+  learning: string[];
   genres: Genre[];
 }
 
@@ -59,6 +60,11 @@ const phases: Phase[] = [
   {
     id: "phase-1",
     title: "Phase I: Jazz Foundations (1910s–50s)",
+    learning: [
+      "Jazz harmony establishes the ii–V–I tension–release loop and the chromatic secondary dominants that power the Circle of Fifths.",
+      "The \"triad of accompaniment\" (piano, guitar, ukulele) evolves from stride and four-to-the-bar comping to walking bass plus shell voicings.",
+      "Rhythmic feel shifts from march-time Ragtime to swung eighths, codifying the ride-cymbal lilt and quarter-note bass lineage for later styles.",
+    ],
     genres: [
       {
         id: "ragtime",
@@ -291,6 +297,11 @@ const phases: Phase[] = [
   {
     id: "phase-2",
     title: "Phase II: Rhythm Evolution (50s–70s)",
+    learning: [
+      "Groove moves from triplet shuffle to straight or syncopated 16ths, centering the backbeat and \"The One\" as the primary driver of feel.",
+      "Bass becomes melodic (Motown) or hypnotically repetitive (deep funk), while guitars adopt percussive chanks and scratch patterns.",
+      "Harmonic motion often simplifies to vamps so rhythmic complexity and production layers can take the spotlight, paving the way for disco and boogie.",
+    ],
     genres: [
       {
         id: "early-rnb",
@@ -452,6 +463,11 @@ const phases: Phase[] = [
   {
     id: "phase-3",
     title: "Phase III: Fusion & Sophistication (70s–80s)",
+    learning: [
+      "Jazz harmony electrifies: slash chords, 11ths, and lush maj7/9 colors sit over rock drums and odd meters.",
+      "Studio polish and Rhodes textures define the West Coast / Yacht Rock aesthetic—smooth voice-leading with pop songcraft.",
+      "These harmonic palettes flow directly into City Pop and AOR, teaching how to keep complex chords listener-friendly.",
+    ],
     genres: [
       {
         id: "jazz-fusion",
@@ -575,6 +591,11 @@ const phases: Phase[] = [
   {
     id: "phase-4",
     title: "Phase IV: Japanese Evolution (70s–90s)",
+    learning: [
+      "Kayōkyoku and New Music morph into City Pop by fusing AOR, funk, disco, and bossa nova rhythms with high-fidelity production.",
+      "The Royal Road (IVmaj7–V7–iii7–vi) supplies endless sentimental motion; FM synths and slap bass modernize the jazz vocabulary.",
+      "Technopop, anime themes, and Shibuya-kei lean on precise sequencing, secondary dominants, and bold modulations for dramatic lift.",
+    ],
     genres: [
       {
         id: "city-pop",
@@ -667,6 +688,11 @@ const phases: Phase[] = [
   {
     id: "phase-5",
     title: "Phase V: Modern Derivatives (90s–Present)",
+    learning: [
+      "Neo-soul, lo-fi hip hop, and future funk recycle jazz extensions (9/11/13) with swung or \"drunk\" drums for warm nostalgia.",
+      "Sampling culture reframes ii–V–I cells into static loops, while sidechain compression and vinyl grit become rhythmic instruments.",
+      "Modern producers continue the City Pop lineage—sped-up Royal Road chops, lush pads, and relaxed humanized timing keep the sound alive.",
+    ],
     genres: [
       {
         id: "neo-soul",
@@ -914,6 +940,16 @@ const MusicCodexApp: React.FC = () => {
   );
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  const chordsForActive = useMemo(
+    () => deriveProgressionChords(activeGenre),
+    [activeGenre]
+  );
+
+  const activePhase = useMemo(
+    () => phases.find((phase) => phase.genres.some((g) => g.id === activeGenre.id)),
+    [activeGenre]
+  );
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-indigo-500/30">
       <Sidebar
@@ -996,6 +1032,34 @@ const MusicCodexApp: React.FC = () => {
               </div>
             </header>
 
+            {activePhase && (
+              <section className="mb-6 lg:mb-8">
+                <div className="bg-gradient-to-r from-indigo-600/50 via-purple-600/40 to-amber-500/40 border border-indigo-500/40 rounded-2xl p-4 sm:p-6 shadow-xl">
+                  <div className="flex items-start gap-3 mb-3">
+                    <div className="p-2 rounded-lg bg-slate-900/40 border border-white/10 text-white">
+                      <Info className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase font-mono tracking-wide text-indigo-100/80">Phase Learning Capsule</p>
+                      <h3 className="text-lg sm:text-xl font-bold text-white leading-tight">
+                        {activePhase.title}
+                      </h3>
+                      <p className="text-xs sm:text-sm text-indigo-100/90 mt-1">
+                        Quick takeaways lifted from the Open Source Music Theory Codex briefing for this era.
+                      </p>
+                    </div>
+                  </div>
+                  <ul className="list-disc pl-5 space-y-2 text-slate-100 text-xs sm:text-sm">
+                    {activePhase.learning.map((item, idx) => (
+                      <li key={idx} className="leading-relaxed">
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </section>
+            )}
+
             {/* Main layout */}
             <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,2.1fr)_minmax(260px,1fr)] gap-6 lg:gap-8">
               {/* Left: theory + visualizer */}
@@ -1040,6 +1104,36 @@ const MusicCodexApp: React.FC = () => {
                   </div>
                 </section>
 
+                {/* Chord Reference */}
+                <section>
+                  <h3 className="text-xs sm:text-sm font-semibold text-slate-200 mb-2 flex items-center gap-2">
+                    <Key className="h-4 w-4 text-emerald-400" />
+                    Chord Reference
+                  </h3>
+                  <div className="bg-slate-900 border border-slate-800 rounded-lg p-4 space-y-3">
+                    <p className="text-[11px] sm:text-xs text-slate-400">
+                      Quick lookup for the degrees, chord symbols, and suggested shapes inside the current progression.
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {chordsForActive.map((chord, idx) => (
+                        <div
+                          key={`${chord.degree}-${idx}`}
+                          className="border border-slate-800 rounded-lg p-3 bg-slate-950/60 shadow-inner"
+                        >
+                          <div className="flex items-center justify-between text-slate-100 font-mono text-sm">
+                            <span>{chord.degree}</span>
+                            <span className="text-emerald-300">{chord.symbol}</span>
+                          </div>
+                          <p className="text-[10px] uppercase tracking-wide text-slate-500 mt-1">{chord.shape}</p>
+                          <p className="text-[11px] text-slate-400 mt-2 leading-relaxed">
+                            {chord.note}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </section>
+
                 {/* Theory Notes */}
                 {activeGenre.theoryNotes && activeGenre.theoryNotes.length > 0 && (
                   <section>
@@ -1055,7 +1149,7 @@ const MusicCodexApp: React.FC = () => {
                 )}
 
                 {/* Instrument Visualizer */}
-                <InstrumentVisualizer genre={activeGenre} />
+                <InstrumentVisualizer genre={activeGenre} chords={chordsForActive} />
               </div>
 
               {/* Right: Reference lab + keys */}
