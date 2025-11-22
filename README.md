@@ -40,8 +40,13 @@ Use it as:
 - [Docker Deployment](#-docker-deployment)
 - [Project Structure](#-project-structure)
 - [Development Scripts](#-development-scripts)
+- [Using the App](#-using-the-app)
+- [Data Model](#-data-model)
+- [Design Notes](#-design-notes)
+- [Testing & Quality](#-testing--quality)
 - [Roadmap](#-roadmap)
 - [Contributing](#-contributing)
+- [Troubleshooting & FAQ](#-troubleshooting--faq)
 - [Theory Credits](#-theory-credits)
 - [License](#-license)
 
@@ -124,11 +129,11 @@ Use it as:
 
 3. **Start the development server**
 
-   ```bash
-   npm run dev
-   # or
-   yarn dev
-   ```
+  ```bash
+  npm run dev
+  # or
+  yarn dev
+  ```
 
    Open [http://localhost:5173](http://localhost:5173) in your browser.
 
@@ -212,6 +217,79 @@ npm run build
 # Preview production build
 npm run preview
 ```
+
+---
+
+## 🧪 Using the App
+
+### Explore harmonic phases
+
+1. Open the **Genre Codex** and pick a phase to filter down to an era (e.g., *Phase IV: The Japanese Evolution*).
+2. Select a **genre** within that phase to load its characteristic progressions.
+3. Switch **decades** to see how voicing preferences shift over time.
+
+### Pivot by instrument
+
+1. In the **Instrument Visualizer**, choose **Piano**, **Guitar**, or **Ukulele**.
+2. Hover the rendered shapes to read micro-copy about why a grip is chosen (e.g., voice-leading rationale, string-set choices).
+3. Use the genre dropdown to jump between idioms without losing your instrument context.
+
+### Circle of Fifths workflows
+
+1. Click any key to reveal the scale degrees, relative minor, and modal options.
+2. Pair the selected key with a genre to get *genre-aware* progressions and chord qualities.
+3. Trigger the YouTube search shortcut to immediately audition songs that match the progression/genre combination.
+
+### Authoring new theory entries
+
+1. Add a new genre or progression to `src/data/phases.ts` using the existing shape (`phase`, `genre`, `signatureProgression`).
+2. If you need new chord shapes, extend `src/data/chords.ts` with voicings for each instrument, keeping note order and fingering metadata intact.
+3. Update `src/types/codex.ts` if you introduce new properties so the UI remains fully typed.
+
+---
+
+## 🧱 Data Model
+
+- **Phases (`src/data/phases.ts`)** — structured by historical era; each phase holds genres, progressions, and citations for reference listening.
+- **Chord shapes (`src/data/chords.ts`)** — normalized definitions for every instrument the visualizer supports. Entries include fingering, intervals, and display hints.
+- **Types (`src/types/codex.ts`)** — canonical interfaces for phases, genres, chord shapes, and progressions. Treat this file as the schema contract for all data additions.
+
+Keeping data in TypeScript makes it diff-friendly, reviewable, and easy to validate during builds.
+
+---
+
+## 🧭 Design Notes
+
+- **Docs-as-code first:** Everything lives in version control so theory edits can be reviewed like code.
+- **Instrument-forward UI:** The layout favors fretboard/keybed visuals over dense prose, with copy that explains *why* a voicing works.
+- **Performance:** Vite + React Suspense keep the experience snappy even when loading many chords.
+- **Accessibility:** Semantic HTML, focus states, and descriptive labels aim to keep the codex usable with keyboards and screen readers.
+- **Portability:** The Docker image bakes the static assets into Nginx, so any registry/runtime combo can host it.
+
+---
+
+## ✅ Testing & Quality
+
+- **Type + build:** `npm run build` (uses Vite and TypeScript; fails on type errors).
+- **Preview bundle:** `npm run preview` to sanity-check routing and static assets locally.
+- **Linting:** If you introduce ESLint/Prettier, keep configs co-located in the repo and wire scripts through `package.json`.
+- **Manual UX pass:**
+  - Verify keyboard tab order for the Circle of Fifths and instrument controls.
+  - Resize to mobile widths to confirm the doc-like layout remains readable.
+  - Trigger YouTube search links in a fresh tab to ensure strings are encoded correctly.
+
+Document any new test commands you add so contributors know how to reproduce your checks.
+
+---
+
+## 🩹 Troubleshooting & FAQ
+
+- **Port already in use?** Set `PORT=3001` (or any free port) before running `npm run dev`.
+- **Fonts or icons missing?** Run `npm install` after pulling; Vite caches can be cleared with `rm -rf node_modules/.vite` if needed.
+- **Docker build feels slow?** The multi-stage image uses dependency caching; ensure `package-lock.json` is unchanged to leverage layers.
+- **Data shape errors?** Cross-check against `src/types/codex.ts`; TypeScript errors usually point to the exact field that needs updating.
+
+If you hit an issue not listed here, open a GitHub issue with your OS, Node version, and repro steps.
 
 ---
 
