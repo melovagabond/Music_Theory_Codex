@@ -23,30 +23,35 @@ const chordShapes: Record<string, { piano: number[], guitar: number[], uke: numb
 };
 
 interface ProgressionChord {
-  degree: string;       // "I", "VI7", "ii7", "bII7"
-  symbol: string;       // "C", "A7", "Dm7", "Db7"
-  shape: keyof typeof chordShapes; // "Maj7" | "min7" | "Dom7" | ...
-  note?: string;        // optional short explanation
+  degree: string;   // e.g. "I", "ii7", "IVmaj7"
+  symbol: string;   // e.g. "Cmaj7"
+  shape: string;    // e.g. "Maj7", "min7", "Dom7" (maps to chordShapes)
+  note: string;     // human description of what it does
 }
+
 interface Genre {
   id: string;
   name: string;
   bpm: string;
   timing: string;
   description: string;
-  progression: string;         // keeps your pretty text version
-  progressionNote: string;     // long-form explanation
-  progressionChords: ProgressionChord[];  // NEW
-  key: string;                 // e.g. "C Major"
+
+  // NEW (but optional so older entries don't break):
+  key?: string;                      // e.g. "C Major", "F Minor"
+  progression: string;               // your existing string, e.g. "ii7 – V7 – Imaj7"
+  progressionNote: string;
+  progressionChords?: ProgressionChord[];
+
   instruments: {
     piano: string;
     guitar: string;
     ukulele: string;
     [key: string]: string;
   };
-  visual_chord: string;        // you can leave this for a default
+  visual_chord: string;              // keeps working as a fallback
   key_traits: string[];
 }
+
 
 interface Phase {
   id: string;
@@ -1402,32 +1407,54 @@ const Sidebar = ({ activeView, setActiveView, activeGenre, setActiveGenre, mobil
 
 const InstrumentVisualizer = ({ genre }: { genre: Genre }) => {
   const [activeTab, setActiveTab] = useState<'piano' | 'guitar' | 'uke'>('piano');
-  const [activeChordIndex, setActiveChordIndex] = useState(0);
 
-  const fallbackShape = "Maj7" as keyof typeof chordShapes;
-  const progression = genre.progressionChords && genre.progressionChords.length > 0
-    ? genre.progressionChords
-    : [{ degree: "—", symbol: "N/A", shape: genre.visual_chord as keyof typeof chordShapes }];
+  // Use detailed progression if available, otherwise a simple fallback
+  const steps: ProgressionChord[] =
+    genre.progressionChords && genre.progressionChords.length > 0
+      ? genre.progressionChords
+      : [
+          {
+            degree: 'I',
+            symbol: genre.visual_chord || 'Cmaj7',
+            shape: genre.visual_chord || 'Maj7',
+            note: 'Generic reference voicing for this style.',
+          },
+        ];
 
-  const current = progression[activeChordIndex] || progression[0];
-  const chordData = chordShapes[current.shape] || chordShapes[fallbackShape];
+  const [activeStepIndex, setActiveStepIndex] = useState(0);
+  const currentStep = steps[activeStepIndex];
+
+  // Map chord "shape" (Maj7, min7, Dom7, etc.) to an instrument-agnostic voicing
+  const chordData =
+    chordShapes[currentStep.shape] ||
+    chordShapes[genre.visual_chord] ||
+    chordShapes['Maj7'];
 
   const tabs = [
-    { id: 'piano', label: 'Piano', icon: Piano },
-    { id: 'guitar', label: 'Guitar', icon: Guitar },
-    { id: 'uke', label: 'Ukulele', icon: Music },
-  ] as const;
+    { id: 'piano' as const, label: 'Piano', icon: Piano },
+    { id: 'guitar' as const, label: 'Guitar', icon: Guitar },
+    { id: 'uke' as const, label: 'Ukulele', icon: Music },
+  ];
 
   return (
     <div className="mt-6 border border-slate-700 rounded-lg overflow-hidden bg-slate-800/30">
+      {/* Header */}
       <div className="bg-slate-800 px-4 py-3 flex items-center justify-between border-b border-slate-700">
-        <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-          <Zap className="h-4 w-4 text-amber-400" />
-          Progression Visualizer:
-          <span className="font-mono text-indigo-300">
-            {genre.key} · {current.symbol} ({current.degree})
-          </span>
-        </h3>
+        <div className="flex flex-col">
+          <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+            <Zap className="h-4 w-4 text-amber-400" />
+            Visualizer:
+            <span className="font-mono text-indigo-300">
+              {currentStep.symbol} ({currentStep.degree})
+            </span>
+          </h3>
+          {genre.key && (
+            <span className="text-[11px] text-slate-400">
+              Key: <span className="font-mono text-slate-200">{genre.key}</span>
+            </span>
+          )}
+        </div>
+
         <div className="flex bg-slate-900 rounded-lg p-1">
           {tabs.map((tab) => {
             const Icon = tab.icon;
@@ -1449,31 +1476,31 @@ const InstrumentVisualizer = ({ genre }: { genre: Genre }) => {
         </div>
       </div>
 
-      {/* progression pills */}
-      <div className="bg-slate-900/80 px-4 py-3 border-b border-slate-700 flex flex-wrap gap-2">
-        {progression.map((ch, idx) => (
+      {/* Progression step selector */}
+      <div className="bg-slate-900/80 border-b border-slate-700 px-4 py-2 flex gap-2 overflow-x-auto custom-scrollbar">
+        {steps.map((step, idx) => (
           <button
-            key={`${ch.symbol}-${idx}`}
-            onClick={() => setActiveChordIndex(idx)}
-            className={`px-3 py-1 rounded-full text-xs font-mono border transition-all ${
-              idx === activeChordIndex
-                ? 'bg-indigo-500 text-white border-indigo-300 shadow'
-                : 'bg-slate-900 text-slate-300 border-slate-600 hover:border-indigo-400'
+            key={idx}
+            onClick={() => setActiveStepIndex(idx)}
+            className={`px-2 py-1 rounded-md text-xs font-mono flex items-center gap-1 whitespace-nowrap transition-all ${
+              idx === activeStepIndex
+                ? 'bg-indigo-600 text-white'
+                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
             }`}
           >
-            {ch.degree} · {ch.symbol}
+            <span className="text-amber-300">{step.degree}</span>
+            <span>{step.symbol}</span>
           </button>
         ))}
       </div>
 
-      {/* instrument diagrams */}
+      {/* Visual */}
       <div className="p-8 flex justify-center items-center min-h-[200px] bg-slate-900/50">
         {activeTab === 'piano' && (
           <div className="w-full">
             <PianoKeys highlightIndices={chordData.piano} />
             <p className="text-center text-xs text-slate-500 mt-4">
-              Typical <span className="font-mono text-indigo-300">{current.symbol}</span>{' '}
-              mapped to {current.shape} voicing on C-based shapes.
+              Generic {currentStep.shape} voicing on C (visual template)
             </p>
           </div>
         )}
@@ -1481,7 +1508,7 @@ const InstrumentVisualizer = ({ genre }: { genre: Genre }) => {
           <div className="w-full">
             <TabFretboard strings={chordData.guitar} />
             <p className="text-center text-xs text-slate-500 mt-4">
-              Grip template for <span className="font-mono text-indigo-300">{current.shape}</span>.
+              Guitar shape for {currentStep.shape} (standard tuning)
             </p>
           </div>
         )}
@@ -1489,93 +1516,217 @@ const InstrumentVisualizer = ({ genre }: { genre: Genre }) => {
           <div className="w-full">
             <TabFretboard strings={chordData.uke} />
             <p className="text-center text-xs text-slate-500 mt-4">
-              Re-entrant voicing for{' '}
-              <span className="font-mono text-indigo-300">{current.shape}</span> on Ukulele.
+              Ukulele shape for {currentStep.shape} (G C E A)
             </p>
           </div>
         )}
       </div>
 
-      {/* technique blurb */}
+      {/* Technique description */}
       <div className="bg-slate-800/80 p-4 border-t border-slate-700">
-        <p className="text-slate-300 text-sm leading-relaxed">
-          <span className="text-indigo-400 font-bold">Genre Technique: </span>
-          {genre.instruments[
-            activeTab === 'uke' ? 'ukulele' : activeTab
-          ]}
+        <p className="text-slate-300 text-sm leading-relaxed mb-2">
+          <span className="text-indigo-400 font-bold">Progression role: </span>
+          {currentStep.note}
         </p>
-        {current.note && (
-          <p className="mt-2 text-xs text-slate-500 italic">
-            Chord note: {current.note}
-          </p>
-        )}
+        <p className="text-slate-300 text-sm leading-relaxed">
+          <span className="text-indigo-400 font-bold">Instrument tip: </span>
+          {
+            genre.instruments[
+              activeTab === 'uke'
+                ? 'ukulele'
+                : activeTab
+            ]
+          }
+        </p>
       </div>
     </div>
   );
 };
 
 export default function MusicCodexApp() {
-  const [activeView, setActiveView] = useState('genre');
-  const [activeGenre, setActiveGenre] = useState(phases[3].genres[2]); // Default to City Pop
+  const [activeView, setActiveView] = useState<'genre' | 'circle'>('genre');
+  const [activeGenre, setActiveGenre] = useState<Genre>(phases[3].genres[2]); // Default to City Pop
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-indigo-500/30">
-      <Sidebar activeView={activeView} setActiveView={setActiveView} activeGenre={activeGenre} setActiveGenre={setActiveGenre} mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
+      <Sidebar
+        activeView={activeView}
+        setActiveView={setActiveView}
+        activeGenre={activeGenre}
+        setActiveGenre={setActiveGenre}
+        mobileMenuOpen={mobileMenuOpen}
+        setMobileMenuOpen={setMobileMenuOpen}
+      />
+
+      {/* Mobile top bar */}
       <div className="md:hidden fixed top-0 w-full bg-slate-900/95 backdrop-blur border-b border-slate-700 p-4 flex justify-between items-center z-30">
-        <div className="flex items-center gap-2 text-amber-400 font-bold"><BookOpen className="h-5 w-5" /><span>Codex</span></div>
-        <button onClick={() => setMobileMenuOpen(true)} className="text-white p-1 hover:bg-slate-800 rounded"><Menu className="h-6 w-6" /></button>
+        <div className="flex items-center gap-2 text-amber-400 font-bold">
+          <BookOpen className="h-5 w-5" />
+          <span>Codex</span>
+        </div>
+        <button
+          onClick={() => setMobileMenuOpen(true)}
+          className="text-white p-1 hover:bg-slate-800 rounded"
+        >
+          <Menu className="h-6 w-6" />
+        </button>
       </div>
+
       <main className="md:ml-72 min-h-screen transition-all duration-500">
         {activeView === 'circle' ? (
-          <div className="p-6 md:p-12 pt-24 md:pt-12 flex flex-col justify-center min-h-screen"><CircleOfFifthsTool /></div>
+          <div className="p-6 md:p-12 pt-24 md:pt-12 flex flex-col justify-center min-h-screen">
+            <CircleOfFifthsTool />
+          </div>
         ) : (
           <div className="p-6 md:p-12 pt-24 md:pt-12 max-w-5xl mx-auto">
-            <div className="flex items-center gap-2 text-xs font-mono text-slate-500 mb-6"><span>codex</span><ChevronRight className="h-3 w-3" /><span>{activeGenre.id}</span></div>
+            {/* Breadcrumb */}
+            <div className="flex items-center gap-2 text-xs font-mono text-slate-500 mb-6">
+              <span>codex</span>
+              <ChevronRight className="h-3 w-3" />
+              <span>{activeGenre.id}</span>
+            </div>
+
+            {/* Header */}
             <header className="mb-8 border-b border-slate-800 pb-8">
               <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
                 <div>
-                  <h1 className="text-4xl md:text-5xl font-black text-white mb-3 tracking-tight leading-tight">{activeGenre.name}</h1>
-                  <p className="text-lg text-slate-400 max-w-2xl leading-relaxed">{activeGenre.description}</p>
+                  <h1 className="text-4xl md:text-5xl font-black text-white mb-3 tracking-tight leading-tight">
+                    {activeGenre.name}
+                  </h1>
+                  <p className="text-lg text-slate-400 max-w-2xl leading-relaxed">
+                    {activeGenre.description}
+                  </p>
+
+                  {activeGenre.key && (
+                    <p className="mt-3 text-sm font-mono text-slate-300">
+                      Primary key:{' '}
+                      <span className="text-indigo-300">
+                        {activeGenre.key}
+                      </span>
+                    </p>
+                  )}
                 </div>
+
                 <div className="flex flex-wrap gap-2 md:justify-end">
-                   <span className="px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full text-xs font-bold text-amber-400 flex items-center gap-1"><Clock className="h-3 w-3" /> {activeGenre.bpm} BPM</span>
-                   <span className="px-3 py-1 bg-purple-500/10 border border-purple-500/20 rounded-full text-xs font-bold text-purple-400 flex items-center gap-1"><FileText className="h-3 w-3" /> {activeGenre.timing}</span>
+                  <span className="px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full text-xs font-bold text-amber-400 flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    {activeGenre.bpm} BPM
+                  </span>
+                  <span className="px-3 py-1 bg-purple-500/10 border border-purple-500/20 rounded-full text-xs font-bold text-purple-400 flex items-center gap-1">
+                    <FileText className="h-3 w-3" />
+                    {activeGenre.timing}
+                  </span>
                 </div>
               </div>
+
               <div className="flex flex-wrap gap-2 mt-6">
-                {activeGenre.key_traits.map((trait, idx) => <span key={idx} className="px-2 py-1 bg-slate-800 border border-slate-700 rounded text-xs font-medium text-slate-400 hover:text-white transition-colors cursor-default">#{trait}</span>)}
+                {activeGenre.key_traits.map((trait, idx) => (
+                  <span
+                    key={idx}
+                    className="px-2 py-1 bg-slate-800 border border-slate-700 rounded text-xs font-medium text-slate-400 hover:text-white transition-colors cursor-default"
+                  >
+                    #{trait}
+                  </span>
+                ))}
               </div>
             </header>
+
+            {/* Main layout */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Left: theory + visualizer */}
               <div className="lg:col-span-2 space-y-8">
+                {/* Harmonic Analysis */}
                 <section>
-                  <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2"><Search className="h-5 w-5 text-indigo-400" /> Harmonic Analysis</h2>
+                  <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                    <Search className="h-5 w-5 text-indigo-400" />
+                    Harmonic Analysis
+                  </h2>
                   <div className="bg-slate-900 rounded-lg border border-slate-800 overflow-hidden">
                     <div className="bg-slate-950 px-4 py-2 border-b border-slate-800 flex justify-between items-center">
-                      <span className="text-xs font-mono text-slate-500 uppercase">Core Progression</span>
-                      <Copy className="h-4 w-4 text-slate-600 cursor-pointer hover:text-white transition-colors" onClick={() => navigator.clipboard.writeText(activeGenre.progression)} />
+                      <span className="text-xs font-mono text-slate-500 uppercase">
+                        Core Progression
+                      </span>
+                      <Copy
+                        className="h-4 w-4 text-slate-600 cursor-pointer hover:text-white transition-colors"
+                        onClick={() =>
+                          navigator.clipboard.writeText(
+                            activeGenre.progression
+                          )
+                        }
+                      />
                     </div>
                     <div className="p-6">
-                      <code className="text-2xl md:text-3xl text-emerald-400 font-mono block mb-4 font-bold">{activeGenre.progression}</code>
-                      <div className="flex gap-3 items-start"><Info className="h-5 w-5 text-indigo-400 shrink-0 mt-0.5" /><p className="text-slate-400 text-sm italic leading-relaxed">{activeGenre.progressionNote}</p></div>
+                      <code className="text-2xl md:text-3xl text-emerald-400 font-mono block mb-4 font-bold">
+                        {activeGenre.progression}
+                      </code>
+                      <div className="flex gap-3 items-start">
+                        <Info className="h-5 w-5 text-indigo-400 shrink-0 mt-0.5" />
+                        <p className="text-slate-400 text-sm italic leading-relaxed">
+                          {activeGenre.progressionNote}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </section>
+
+                {/* Instrument Visualizer (progression-aware) */}
                 <InstrumentVisualizer genre={activeGenre} />
               </div>
+
+              {/* Right: Reference lab + keys */}
               <div className="space-y-6">
+                {/* Reference Lab */}
                 <div className="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-2xl p-6 shadow-xl text-white relative overflow-hidden group">
                   <div className="absolute top-0 right-0 p-32 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
                   <div className="relative z-10">
-                    <div className="flex items-center gap-3 mb-4"><div className="bg-white/20 p-2 rounded-lg"><Headphones className="h-6 w-6" /></div><span className="font-bold text-lg">Reference Lab</span></div>
-                    <p className="text-indigo-100 text-sm mb-6">Generate a curated playlist of the best {activeGenre.name} tracks.</p>
-                    <a href={`https://www.youtube.com/results?search_query=best+${activeGenre.name.replace(/ /g, '+')}+mix`} target="_blank" rel="noopener noreferrer" className="w-full bg-white text-indigo-900 py-3 rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-indigo-50 transition-colors shadow-lg"><Play className="h-4 w-4 fill-current" /> Listen on YouTube</a>
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="bg-white/20 p-2 rounded-lg">
+                        <Headphones className="h-6 w-6" />
+                      </div>
+                      <span className="font-bold text-lg">Reference Lab</span>
+                    </div>
+                    <p className="text-indigo-100 text-sm mb-6">
+                      Generate a curated playlist of the best {activeGenre.name}{' '}
+                      tracks.
+                    </p>
+                    <a
+                      href={`https://www.youtube.com/results?search_query=best+${activeGenre.name.replace(
+                        / /g,
+                        '+'
+                      )}+mix`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full bg-white text-indigo-900 py-3 rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-indigo-50 transition-colors shadow-lg"
+                    >
+                      <Play className="h-4 w-4 fill-current" />
+                      Listen on YouTube
+                    </a>
                   </div>
                 </div>
+
+                {/* Common Keys */}
                 <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-5">
-                  <h3 className="text-slate-400 text-xs font-bold uppercase mb-4 flex items-center gap-2"><Key className="h-4 w-4" /> Common Keys</h3>
-                  <div className="flex flex-wrap gap-2">{["C Major", "Eb Major", "F Minor", "Bb Major"].map(k => <span key={k} className="bg-slate-900 text-slate-300 px-3 py-1.5 rounded text-sm font-mono border border-slate-800">{k}</span>)}</div>
+                  <h3 className="text-slate-400 text-xs font-bold uppercase mb-4 flex items-center gap-2">
+                    <Key className="h-4 w-4" />
+                    Common Keys
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      activeGenre.key ?? 'Varies by artist',
+                      // you can add more genre-specific keys later:
+                      // ...activeGenre.commonKeys ?? []
+                    ]
+                      .filter(Boolean)
+                      .map((k) => (
+                        <span
+                          key={k}
+                          className="bg-slate-900 text-slate-300 px-3 py-1.5 rounded text-sm font-mono border border-slate-800"
+                        >
+                          {k}
+                        </span>
+                      ))}
+                  </div>
                 </div>
               </div>
             </div>
