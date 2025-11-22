@@ -1,0 +1,49 @@
+import { PhaseHistory } from "../types/codex";
+
+export const phaseHistories: Record<string, PhaseHistory> = {
+  "phase-1": {
+    summary:
+      "The roots of jazz crystalized from ragtime parlors and New Orleans street bands into the swing era’s dance halls and the bebop workshops that rewired harmony for the modern age.",
+    highlights: [
+      "Ragtime and stride piano set the syncopated blueprint that horn bands later lifted into collective improvisation.",
+      "Swing standardized the walking bass, ride-cymbal pulse, and ii–V–I grammar that still anchors jazz education.",
+      "Bebop and cool schools pushed chromaticism, altered dominants, and small-group virtuosity, paving the way for modal and bossa experiments.",
+    ],
+  },
+  "phase-2": {
+    summary:
+      "Post-war rhythm sections electrified, turning gospel and blues harmony into the engine for soul, funk, and the Caribbean diaspora’s offbeat revolutions.",
+    highlights: [
+      "Early R&B and Motown translated church changes into pop structures with backbeat drums and melodic bass hooks.",
+      "Funk stripped harmony to the bone while stacking interlocking riffs, birthing syncopated rhythm guitar and modular vamps.",
+      "Jamaican ska-to-reggae grooves and Afrobeat’s extended jams globalized the pocket, influencing everything from disco to hip-hop.",
+    ],
+  },
+  "phase-3": {
+    summary:
+      "Studio technology and arena ambition fused jazz chops with rock power, soft-focus singer-songwriter craft, and the sequencer sheen that defined late-70s and 80s polish.",
+    highlights: [
+      "Jazz fusion and Latin crossovers kept improvisation alive over electric textures, odd meters, and modal vamps.",
+      "Soft rock, yacht rock, and sophisti-pop packaged jazz harmony into radio-friendly hooks with immaculate production.",
+      "Prog, Italo, and synthpop embraced synthesizers and drum machines, proving groove and futurism could coexist with musicianship.",
+    ],
+  },
+  "phase-4": {
+    summary:
+      "Japan’s music industry blended imported jazz, funk, and disco with local songwriting, spawning City Pop’s cosmopolitan shimmer and electronic offshoots that foreshadowed global internet pop.",
+    highlights: [
+      "Kayōkyoku and technopop bridged enka balladry with synth-driven optimism, inspiring later idol and anime aesthetics.",
+      "City Pop and J-fusion captured the bubble-era nightlife, layering American funk harmony over pristine studio gloss.",
+      "Shibuya-kei, lo-fi, and future funk recycled these catalogs for a new digital generation, influencing K-pop and electronic scenes worldwide.",
+    ],
+  },
+  "phase-5": {
+    summary:
+      "The 1990s through today repurpose jazz harmony and vintage samples through hip-hop production, bedroom studios, and internet micro-scenes that spread globally overnight.",
+    highlights: [
+      "Neo-soul and lo-fi beat culture humanized quantization, pushing swung or behind-the-grid drums against lush 9/11/13 voicings.",
+      "Future funk and synthwave revived City Pop and 80s soundtracks with modern sidechain compression, filters, and digital distribution.",
+      "Trap, K-pop, and festival EDM blended global influences, turning the Royal Road cadence and minor-key loops into stadium-ready hooks and viral clips.",
+    ],
+  },
+};

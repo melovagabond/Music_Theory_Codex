@@ -20,15 +20,19 @@ import {
 import { CircleOfFifthsTool } from "./CircleOfFifthsTool";
 import { InstrumentVisualizer, deriveProgressionChords } from "./InstrumentVisualizer";
 import { phases } from "./data/phases";
+import { phaseHistories } from "./data/phaseHistories";
+import { genreHistories } from "./data/genreHistories";
 import { Genre, Phase } from "./types/codex";
 
 /* ---------- SIDEBAR ---------- */
 
 interface SidebarProps {
-  activeView: "home" | "genre" | "circle";
-  setActiveView: (view: "home" | "genre" | "circle") => void;
+  activeView: "home" | "genre" | "circle" | "phase";
+  setActiveView: (view: "home" | "genre" | "circle" | "phase") => void;
+  activePhaseId: string;
+  onPhaseSelect: (phaseId: string) => void;
   activeGenre: Genre;
-  setActiveGenre: (genre: Genre) => void;
+  onGenreSelect: (genre: Genre) => void;
   mobileMenuOpen: boolean;
   setMobileMenuOpen: (open: boolean) => void;
 }
@@ -36,8 +40,10 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({
   activeView,
   setActiveView,
+  activePhaseId,
+  onPhaseSelect,
   activeGenre,
-  setActiveGenre,
+  onGenreSelect,
   mobileMenuOpen,
   setMobileMenuOpen,
 }) => {
@@ -97,10 +103,22 @@ const Sidebar: React.FC<SidebarProps> = ({
 
           {phases.map((phase) => (
             <div key={phase.id} className="space-y-1">
-              <div className="px-3 py-2 text-[10px] font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-2">
+              <button
+                onClick={() => {
+                  onPhaseSelect(phase.id);
+                  setMobileMenuOpen(false);
+                }}
+                className={`w-full px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wider flex items-center gap-2 rounded-md border transition-colors
+                ${
+                  activePhaseId === phase.id && activeView === "phase"
+                    ? "bg-indigo-600/20 text-white border-indigo-500/60"
+                    : "text-indigo-400 border-transparent hover:bg-slate-800 hover:text-white"
+                }
+              `}
+              >
                 <GitBranch className="h-3 w-3" />
                 {phase.title}
-              </div>
+              </button>
               <ul className="space-y-1">
                 {phase.genres.map((genre) => {
                   const isActive =
@@ -109,8 +127,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                     <li key={genre.id}>
                       <button
                         onClick={() => {
-                          setActiveGenre(genre);
-                          setActiveView("genre");
+                          onGenreSelect(genre);
                           setMobileMenuOpen(false);
                         }}
                         className={`w-full text-left px-4 py-2 text-xs flex items-center justify-between rounded-md transition-colors
@@ -153,12 +170,11 @@ const getCommonKeys = (genre: Genre): string[] => {
 /* ---------- MAIN APP ---------- */
 
 const MusicCodexApp: React.FC = () => {
-  const [activeView, setActiveView] = useState<"home" | "genre" | "circle">(
-    "home"
-  );
-  const [activeGenre, setActiveGenre] = useState<Genre>(
-    phases[3].genres[0] // Default to City Pop
-  );
+  const [activeView, setActiveView] = useState<
+    "home" | "genre" | "circle" | "phase"
+  >("home");
+  const [activePhaseId, setActivePhaseId] = useState(phases[3].id);
+  const [activeGenre, setActiveGenre] = useState<Genre>(phases[3].genres[0]);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const chordsForActive = useMemo(
@@ -166,8 +182,37 @@ const MusicCodexApp: React.FC = () => {
     [activeGenre]
   );
 
-  const activePhase = useMemo<Phase | undefined>(
-    () => phases.find((phase) => phase.genres.some((g) => g.id === activeGenre.id)),
+  const activePhase = useMemo<Phase | undefined>(() => {
+    const selectedPhase = phases.find((phase) => phase.id === activePhaseId);
+    if (selectedPhase) return selectedPhase;
+    return phases.find((phase) =>
+      phase.genres.some((g) => g.id === activeGenre.id)
+    );
+  }, [activeGenre, activePhaseId]);
+
+  const activePhaseHistory = useMemo(
+    () => (activePhase ? phaseHistories[activePhase.id] : undefined),
+    [activePhase]
+  );
+
+  const handlePhaseSelect = (phaseId: string) => {
+    setActivePhaseId(phaseId);
+    setActiveView("phase");
+  };
+
+  const handleGenreSelect = (genre: Genre) => {
+    setActiveGenre(genre);
+    const parentPhase = phases.find((phase) =>
+      phase.genres.some((g) => g.id === genre.id)
+    );
+    if (parentPhase) {
+      setActivePhaseId(parentPhase.id);
+    }
+    setActiveView("genre");
+  };
+
+  const genreHistory = useMemo(
+    () => genreHistories[activeGenre.id] ?? activeGenre.description,
     [activeGenre]
   );
 
@@ -176,8 +221,13 @@ const MusicCodexApp: React.FC = () => {
       <Sidebar
         activeView={activeView}
         setActiveView={setActiveView}
+        activePhaseId={activePhaseId}
+        onPhaseSelect={(phaseId) => {
+          handlePhaseSelect(phaseId);
+          setMobileMenuOpen(false);
+        }}
         activeGenre={activeGenre}
-        setActiveGenre={setActiveGenre}
+        onGenreSelect={handleGenreSelect}
         mobileMenuOpen={mobileMenuOpen}
         setMobileMenuOpen={setMobileMenuOpen}
       />
@@ -238,14 +288,21 @@ const MusicCodexApp: React.FC = () => {
                   </div>
                   <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar pr-1">
                     {phases.map((phase) => (
-                      <div key={phase.id} className="bg-white/5 rounded-lg p-3 border border-white/5">
+                      <button
+                        key={phase.id}
+                        onClick={() => {
+                          handlePhaseSelect(phase.id);
+                          setMobileMenuOpen(false);
+                        }}
+                        className="w-full text-left bg-white/5 rounded-lg p-3 border border-white/5 hover:bg-white/10 transition-colors"
+                      >
                         <p className="text-[11px] uppercase text-indigo-100/80 font-semibold flex items-center gap-2">
                           <GitBranch className="h-3 w-3" /> {phase.title}
                         </p>
                         <p className="text-[12px] text-slate-200/90 mt-1 leading-snug">
                           {phase.learning[0]}
                         </p>
-                      </div>
+                      </button>
                     ))}
                   </div>
                   <button
@@ -401,6 +458,109 @@ const MusicCodexApp: React.FC = () => {
               </p>
             </section>
           </div>
+        ) : activeView === "phase" && activePhase && activePhaseHistory ? (
+          <div className="pt-20 md:pt-10 px-3 sm:px-6 lg:px-10 w-full max-w-screen-2xl mx-auto space-y-8 lg:space-y-10">
+            <div className="flex items-center gap-2 text-[10px] md:text-xs font-mono text-slate-500 mb-4 md:mb-6">
+              <span>codex</span>
+              <ChevronRight className="h-3 w-3" />
+              <span>{activePhase.id}</span>
+            </div>
+
+            <header className="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl space-y-3">
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-lg bg-indigo-500/20 border border-indigo-500/40 text-indigo-100">
+                  <GitBranch className="h-5 w-5" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] uppercase font-mono tracking-wide text-indigo-200/80">Phase History</p>
+                  <h1 className="text-3xl sm:text-4xl font-black text-white leading-tight">
+                    {activePhase.title}
+                  </h1>
+                  <p className="text-sm sm:text-base text-slate-200/90 leading-relaxed">
+                    {activePhaseHistory.summary}
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <span className="px-3 py-1 bg-slate-800/80 border border-slate-700 rounded-full text-[10px] sm:text-xs font-semibold text-slate-200 flex items-center gap-2">
+                  <FolderTree className="h-4 w-4" />
+                  {activePhase.genres.length} genres mapped
+                </span>
+                <span className="px-3 py-1 bg-amber-500/10 border border-amber-500/30 rounded-full text-[10px] sm:text-xs font-semibold text-amber-200 flex items-center gap-2">
+                  <Lightbulb className="h-4 w-4" />
+                  {activePhase.learning.length} theory pillars
+                </span>
+              </div>
+            </header>
+
+            <section className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
+              <div className="bg-slate-900/70 border border-slate-800 rounded-xl p-4 sm:p-5 lg:col-span-2 space-y-3">
+                <div className="flex items-center gap-2 text-indigo-200 text-xs font-semibold uppercase tracking-wide">
+                  <Info className="h-4 w-4" />
+                  Overview
+                </div>
+                <p className="text-sm sm:text-base text-slate-200 leading-relaxed">
+                  {activePhaseHistory.summary}
+                </p>
+                <ul className="list-disc pl-5 space-y-2 text-slate-100 text-sm">
+                  {activePhaseHistory.highlights.map((item) => (
+                    <li key={item} className="leading-relaxed">
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="bg-slate-900/70 border border-slate-800 rounded-xl p-4 sm:p-5 space-y-3">
+                <div className="flex items-center gap-2 text-amber-200 text-xs font-semibold uppercase tracking-wide">
+                  <Lightbulb className="h-4 w-4" />
+                  Theory Pillars
+                </div>
+                <ul className="space-y-2 text-slate-100 text-sm">
+                  {activePhase.learning.map((item) => (
+                    <li
+                      key={item}
+                      className="p-3 rounded-lg border border-slate-800 bg-slate-950/60 leading-relaxed"
+                    >
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </section>
+
+            <section className="bg-slate-900/70 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl">
+              <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
+                <div className="flex items-center gap-2">
+                  <Headphones className="h-5 w-5 text-indigo-300" />
+                  <h2 className="text-lg sm:text-xl font-bold text-white">
+                    Featured Genres
+                  </h2>
+                </div>
+                <p className="text-xs text-slate-400">
+                  Choose a genre to view its breakdown and chord tools.
+                </p>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                {activePhase.genres.map((genre) => (
+                  <button
+                    key={genre.id}
+                    onClick={() => handleGenreSelect(genre)}
+                    className="text-left bg-slate-950/60 border border-slate-800 rounded-xl p-4 hover:border-indigo-500/60 hover:bg-slate-900 transition-colors"
+                  >
+                    <p className="text-[11px] uppercase text-indigo-200/80 font-semibold flex items-center gap-2">
+                      <GitBranch className="h-3 w-3" /> {activePhase.title}
+                    </p>
+                    <h3 className="text-lg font-bold text-white leading-tight mt-1">
+                      {genre.name}
+                    </h3>
+                    <p className="text-[13px] text-slate-300 leading-snug mt-1 line-clamp-3">
+                      {genre.description}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            </section>
+          </div>
         ) : (
           <div className="pt-20 md:pt-10 px-3 sm:px-6 lg:px-10 w-full max-w-screen-2xl mx-auto">
             {/* Breadcrumb */}
@@ -461,22 +621,22 @@ const MusicCodexApp: React.FC = () => {
                       <Info className="h-5 w-5" />
                     </div>
                     <div>
-                      <p className="text-[10px] uppercase font-mono tracking-wide text-indigo-100/80">Phase Learning Capsule</p>
+                      <p className="text-[10px] uppercase font-mono tracking-wide text-indigo-100/80">Genre History</p>
                       <h3 className="text-lg sm:text-xl font-bold text-white leading-tight">
-                        {activePhase.title}
+                        {activeGenre.name}
                       </h3>
-                      <p className="text-xs sm:text-sm text-indigo-100/90 mt-1">
-                        Quick takeaways lifted from the Open Source Music Theory Codex briefing for this era.
+                      <p className="text-xs sm:text-sm text-indigo-100/90 mt-1 leading-relaxed">
+                        {genreHistory}
                       </p>
+                      <button
+                        onClick={() => handlePhaseSelect(activePhase.id)}
+                        className="mt-3 inline-flex items-center gap-2 text-[11px] sm:text-xs font-semibold text-indigo-50 underline-offset-4 hover:underline"
+                      >
+                        <GitBranch className="h-3 w-3" />
+                        Explore {activePhase.title} history
+                      </button>
                     </div>
                   </div>
-                  <ul className="list-disc pl-5 space-y-2 text-slate-100 text-xs sm:text-sm">
-                    {activePhase.learning.map((item, idx) => (
-                      <li key={idx} className="leading-relaxed">
-                        {item}
-                      </li>
-                    ))}
-                  </ul>
                 </div>
               </section>
             )}
