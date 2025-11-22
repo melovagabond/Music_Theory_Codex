@@ -1,5 +1,13 @@
-import React, { useMemo, useState } from "react";
-import { Piano, Guitar, Music2, ChevronRight } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import {
+  Piano,
+  Guitar,
+  Music2,
+  ChevronRight,
+  Keyboard,
+  Download,
+  Lightbulb,
+} from "lucide-react";
 import type { Genre, ProgressionChord } from "./types/codex";
 
 interface InstrumentVisualizerProps {
@@ -68,6 +76,118 @@ const CHORD_SHAPES = {
 } as const;
 
 type ChordShapeKey = keyof typeof CHORD_SHAPES;
+
+// Simple QWERTY mapping for quick chord stepping
+const KEY_BINDINGS = ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"] as const;
+type KeyBinding = (typeof KEY_BINDINGS)[number];
+
+const NOTE_BASE: Record<string, number> = {
+  C: 60,
+  "C#": 61,
+  Db: 61,
+  D: 62,
+  "D#": 63,
+  Eb: 63,
+  E: 64,
+  F: 65,
+  "F#": 66,
+  Gb: 66,
+  G: 67,
+  "G#": 68,
+  Ab: 68,
+  A: 69,
+  "A#": 70,
+  Bb: 70,
+  B: 71,
+};
+
+const parseRootMidi = (symbol: string): number | null => {
+  const match = symbol.match(/^([A-Ga-g])(#{1}|b)?/);
+  if (!match) return null;
+  const [, root, accidental] = match;
+  const key = `${root.toUpperCase()}${accidental ?? ""}`;
+  return NOTE_BASE[key] ?? null;
+};
+
+const varLen = (value: number): number[] => {
+  const buffer: number[] = [];
+  let val = value & 0x7f;
+  while ((value >>= 7)) {
+    val <<= 8;
+    val |= (value & 0x7f) | 0x80;
+  }
+  while (true) {
+    buffer.push(val & 0xff);
+    if (val & 0x80) val >>= 8;
+    else break;
+  }
+  return buffer;
+};
+
+const buildMidiFile = (progression: ProgressionChord[]): Uint8Array => {
+  const division = 0x01e0; // 480 ticks per quarter note
+  const tempo = 500000; // microseconds per quarter note (120 bpm)
+  const trackData: number[] = [
+    0x00,
+    0xff,
+    0x51,
+    0x03,
+    (tempo >> 16) & 0xff,
+    (tempo >> 8) & 0xff,
+    tempo & 0xff,
+  ];
+
+  progression.forEach((chord) => {
+    const rootMidi = parseRootMidi(chord.symbol) ?? 60;
+    const intervals =
+      CHORD_SHAPES[chord.shape as ChordShapeKey]?.pianoIntervals ||
+      CHORD_SHAPES.Maj7.pianoIntervals;
+    const notes = intervals.map((interval) => rootMidi + interval);
+
+    notes.forEach((note) => {
+      trackData.push(...varLen(0));
+      trackData.push(0x90, note, 100);
+    });
+
+    notes.forEach((note, idx) => {
+      trackData.push(...varLen(idx === 0 ? division : 0));
+      trackData.push(0x80, note, 64);
+    });
+  });
+
+  trackData.push(0x00, 0xff, 0x2f, 0x00);
+
+  const trackLength = trackData.length;
+  const header = [
+    0x4d,
+    0x54,
+    0x68,
+    0x64,
+    0x00,
+    0x00,
+    0x00,
+    0x06,
+    0x00,
+    0x00,
+    0x00,
+    0x01,
+    (division >> 8) & 0xff,
+    division & 0xff,
+  ];
+
+  const trackHeader = [
+    0x4d,
+    0x54,
+    0x72,
+    0x6b,
+    (trackLength >> 24) & 0xff,
+    (trackLength >> 16) & 0xff,
+    (trackLength >> 8) & 0xff,
+    trackLength & 0xff,
+  ];
+
+  return new Uint8Array([...header, ...trackHeader, ...trackData]);
+};
 
 // --- helpers to fall back when no detailed progressionChords ---
 
@@ -296,6 +416,8 @@ export const InstrumentVisualizer: React.FC<InstrumentVisualizerProps> = ({
   );
 
   const [activeIndex, setActiveIndex] = useState(0);
+  const [pressedKey, setPressedKey] = useState<KeyBinding | null>(null);
+  const [showExplain, setShowExplain] = useState(false);
   const active = chords[activeIndex] ?? chords[0];
 
   const shapeKey: ChordShapeKey =
@@ -304,6 +426,61 @@ export const InstrumentVisualizer: React.FC<InstrumentVisualizerProps> = ({
     "Maj7";
 
   const shape = CHORD_SHAPES[shapeKey];
+
+  const handleExportMidi = () => {
+    const midi = buildMidiFile(chords);
+    const blob = new Blob([midi.buffer as ArrayBuffer], { type: "audio/midi" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `${genre.id}-progression.mid`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  };
+
+  useEffect(() => {
+    const mapping = new Map<KeyBinding, number>(
+      KEY_BINDINGS.map((key, idx) => [key, idx])
+    );
+
+    const downHandler = (event: KeyboardEvent) => {
+      const key = event.key.toLowerCase() as KeyBinding;
+      if (!mapping.has(key)) return;
+      const idx = mapping.get(key);
+      if (idx === undefined) return;
+      setActiveIndex(Math.min(idx, chords.length - 1));
+      setPressedKey(key);
+    };
+
+    const upHandler = (event: KeyboardEvent) => {
+      const key = event.key.toLowerCase() as KeyBinding;
+      if (mapping.has(key)) {
+        setPressedKey((current) => (current === key ? null : current));
+      }
+    };
+
+    window.addEventListener("keydown", downHandler);
+    window.addEventListener("keyup", upHandler);
+    return () => {
+      window.removeEventListener("keydown", downHandler);
+      window.removeEventListener("keyup", upHandler);
+    };
+  }, [chords.length]);
+
+  const explanations = useMemo(
+    () =>
+      chords.map((chord, idx) => {
+        const next = chords[idx + 1];
+        const movement = next
+          ? `Moves to ${next.degree} (${next.symbol}) next.`
+          : "Cadences or loops back to the top.";
+        return {
+          title: `Step ${idx + 1}: ${chord.degree} → ${chord.symbol}`,
+          detail: `${chord.note} ${movement}`,
+        };
+      }),
+    [chords]
+  );
 
   return (
     <section>
@@ -337,6 +514,25 @@ export const InstrumentVisualizer: React.FC<InstrumentVisualizerProps> = ({
         ))}
       </div>
 
+      <div className="flex flex-wrap gap-2 mb-4 text-xs">
+        <button
+          onClick={handleExportMidi}
+          className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-slate-900 border border-slate-800 text-slate-100 hover:border-emerald-400 hover:text-emerald-100"
+        >
+          <Download className="h-4 w-4" /> Export MIDI
+        </button>
+        <button
+          onClick={() => setShowExplain((val) => !val)}
+          className={`inline-flex items-center gap-2 px-3 py-2 rounded-md border transition-colors ${
+            showExplain
+              ? "bg-indigo-600/20 border-indigo-400 text-indigo-100"
+              : "bg-slate-900 border-slate-800 text-slate-100 hover:border-indigo-400"
+          }`}
+        >
+          <Lightbulb className="h-4 w-4" /> Explain this progression
+        </button>
+      </div>
+
       {/* Active chord explanation */}
       <div className="mb-4 bg-slate-900 border border-slate-800 rounded-lg p-4 text-xs md:text-sm">
         <div className="flex items-center justify-between mb-2">
@@ -348,6 +544,25 @@ export const InstrumentVisualizer: React.FC<InstrumentVisualizerProps> = ({
         </div>
         <p className="text-slate-400 leading-relaxed">{active.note}</p>
       </div>
+
+      {showExplain && (
+        <div className="mb-4 bg-indigo-950/40 border border-indigo-700/50 rounded-lg p-4 text-xs md:text-sm space-y-3">
+          <div className="flex items-center gap-2 text-indigo-100 font-semibold">
+            <Lightbulb className="h-4 w-4" /> Annotated theory breakdown
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {explanations.map((item) => (
+              <div
+                key={item.title}
+                className="rounded-md border border-indigo-700/50 bg-indigo-900/40 p-3"
+              >
+                <p className="font-mono text-indigo-100 text-sm">{item.title}</p>
+                <p className="text-slate-200 mt-1 leading-relaxed">{item.detail}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Instrument visuals */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -391,6 +606,35 @@ export const InstrumentVisualizer: React.FC<InstrumentVisualizerProps> = ({
             Tuned to <span className="font-mono">G–C–E–A</span>. Use this as a
             starting voicing and adjust for comfort.
           </p>
+        </div>
+      </div>
+
+      <div className="mt-4 bg-slate-900 border border-slate-800 rounded-lg p-4">
+        <div className="flex items-center gap-2 text-slate-200 text-sm mb-2">
+          <Keyboard className="h-4 w-4 text-emerald-400" />
+          Keyboard overlay
+          <span className="text-[10px] uppercase tracking-wide text-slate-500">
+            Press Q–P to trigger steps
+          </span>
+        </div>
+        <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
+          {KEY_BINDINGS.map((key, idx) => {
+            const isActive =
+              pressedKey === key || (idx === activeIndex && pressedKey === null);
+            return (
+              <div
+                key={key}
+                className={`text-center border rounded-md px-2 py-2 text-xs font-mono transition-colors ${
+                  isActive
+                    ? "border-emerald-400 bg-emerald-500/20 text-emerald-100"
+                    : "border-slate-800 bg-slate-950 text-slate-300"
+                }`}
+              >
+                <div className="font-bold">{key.toUpperCase()}</div>
+                <div className="text-[10px] text-slate-400">{`Step ${idx + 1}`}</div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </section>
