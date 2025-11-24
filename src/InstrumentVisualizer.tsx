@@ -531,6 +531,7 @@ export const InstrumentVisualizer: React.FC<InstrumentVisualizerProps> = ({
 
   const {
     supported: midiSupported,
+    provider: midiProvider,
     status: midiStatus,
     permissionError: midiError,
     isEnabled: midiEnabled,
@@ -576,15 +577,21 @@ export const InstrumentVisualizer: React.FC<InstrumentVisualizerProps> = ({
     ? "bg-rose-500"
     : "bg-slate-500";
 
+  const providerLabel = midiProvider === "serial"
+    ? "Web Serial"
+    : midiProvider === "usb"
+    ? "WebUSB"
+    : "Web MIDI";
+
   const midiStatusLabel = !midiSupported
-    ? "This browser does not support Web MIDI."
+    ? "No Web MIDI, Web Serial, or WebUSB support detected."
     : midiStatus === "pending"
-    ? "Waiting for MIDI permission…"
+    ? `Requesting ${providerLabel} permission…`
     : midiStatus === "listening"
-    ? "Listening for MIDI input."
+    ? `Listening for MIDI input via ${providerLabel}.`
     : midiStatus === "error"
-    ? midiError ?? "MIDI permission was blocked."
-    : "Ready to enable MIDI input.";
+    ? midiError ?? `MIDI permission was blocked for ${providerLabel}.`
+    : `Ready to enable MIDI input via ${providerLabel}.`;
 
   return (
     <section>
@@ -746,7 +753,10 @@ export const InstrumentVisualizer: React.FC<InstrumentVisualizerProps> = ({
             {!midiSupported && (
               <div className="flex items-center gap-1 text-amber-300">
                 <AlertTriangle className="h-4 w-4" />
-                <span>Web MIDI requires a Chromium-based browser.</span>
+                <span>
+                  Web MIDI/Serial/USB input requires a secure, modern browser
+                  (Chrome/Edge recommended).
+                </span>
               </div>
             )}
           </div>
