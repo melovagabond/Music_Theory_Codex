@@ -26,8 +26,6 @@ interface InstrumentVisualizerProps {
 
 // --- chord shape database ---
 
-const MIDI_KEY_BINDINGS = [60, 62, 64, 65, 67, 69, 71, 72, 74, 76];
-
 const INSTRUMENT_OPTIONS: { value: InstrumentKey; label: string }[] = [
   { value: "piano", label: "Piano" },
   { value: "guitar", label: "Guitar" },
