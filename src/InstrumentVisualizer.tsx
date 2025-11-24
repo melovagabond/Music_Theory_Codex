@@ -18,6 +18,7 @@ import type { Genre, ProgressionChord } from "./types/codex";
 import { useMidiInput } from "./hooks/useMidiInput";
 import { CHORD_SHAPES, ChordShapeKey } from "./data/chordShapes";
 import {
+<<<<<<< ours
   InstrumentKey,
   parseRootMidi,
   playChord,
@@ -29,6 +30,14 @@ import {
   InteractiveKeyboard,
   NoteMetadata,
 } from "./components/InteractiveKeyboard";
+=======
+  DRUM_PADS,
+  InstrumentKey,
+  playChord,
+  playDrumNote,
+  warmupSamples,
+} from "./audio/sampler";
+>>>>>>> theirs
 
 interface InstrumentVisualizerProps {
   genre: Genre;
@@ -42,6 +51,7 @@ const INSTRUMENT_OPTIONS: { value: InstrumentKey; label: string }[] = [
   { value: "guitar", label: "Guitar" },
   { value: "ukulele", label: "Ukulele" },
   { value: "bass", label: "Bass" },
+  { value: "drums", label: "Drum kit" },
 ];
 
 // Simple QWERTY mapping for quick chord stepping
@@ -361,9 +371,13 @@ export const InstrumentVisualizer: React.FC<InstrumentVisualizerProps> = ({
   const [midiFocusIndex, setMidiFocusIndex] = useState<number | null>(null);
   const [instrument, setInstrument] = useState<InstrumentKey>("piano");
   const [muted, setMuted] = useState(false);
+<<<<<<< ours
   const [exportingMp3, setExportingMp3] = useState(false);
   const [mp3Error, setMp3Error] = useState<string | null>(null);
   const [lastPlayedNote, setLastPlayedNote] = useState<string | null>(null);
+=======
+  const [activePad, setActivePad] = useState<number | null>(null);
+>>>>>>> theirs
   const active = chords[activeIndex] ?? chords[0];
   const midiNoteToIndexRef = useRef(new Map<number, number>());
 
@@ -453,6 +467,16 @@ export const InstrumentVisualizer: React.FC<InstrumentVisualizerProps> = ({
       void playChord(chordShape, rootMidi, instrument);
     },
     [chords, instrument, muted, resolveShapeKey]
+  );
+
+  const triggerDrumPad = useCallback(
+    (midiNote: number) => {
+      if (muted) return;
+      setActivePad(midiNote);
+      void playDrumNote(midiNote);
+      window.setTimeout(() => setActivePad((current) => (current === midiNote ? null : current)), 160);
+    },
+    [muted]
   );
 
   const handleStepSelect = useCallback(
@@ -867,6 +891,36 @@ export const InstrumentVisualizer: React.FC<InstrumentVisualizerProps> = ({
               Last note: {lastPlayedNote}
             </span>
           )}
+        </div>
+      </div>
+
+      <div className="mt-4 bg-slate-900 border border-slate-800 rounded-lg p-4">
+        <div className="flex items-center gap-2 text-slate-200 text-sm mb-2">
+          <RadioReceiver className="h-4 w-4 text-amber-300" />
+          Drum kit trigger pads
+          <span className="text-[10px] uppercase tracking-wide text-slate-500">
+            MIDI notes mapped for sequencing
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
+          {DRUM_PADS.map((pad) => {
+            const isActive = activePad === pad.midi;
+            return (
+              <button
+                key={pad.id}
+                onClick={() => triggerDrumPad(pad.midi)}
+                className={`flex flex-col items-start gap-1 border rounded-lg px-3 py-3 text-left transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:ring-offset-2 focus:ring-offset-slate-900 ${
+                  isActive
+                    ? "border-emerald-400 bg-emerald-500/20 text-emerald-50"
+                    : "border-slate-800 bg-slate-950 text-slate-200 hover:border-emerald-400"
+                }`}
+              >
+                <span className="text-sm font-semibold">{pad.label}</span>
+                <span className="text-[11px] text-slate-400">MIDI {pad.midi}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
