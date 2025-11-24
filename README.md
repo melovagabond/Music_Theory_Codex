@@ -67,6 +67,7 @@ Use it as:
   - 🎹 **Piano:** Highlighted key voicings (Rootless, Shells, Clusters, *So What*).
   - 🎸 **Guitar:** Fretboard diagrams for specific grips (Hendrix thumb-over, Nile Rodgers-style strum patterns).
   - 🎻 **Ukulele:** Jazz and Funk voicing charts with re-entrant tuning logic.
+  - 🔊 **Inline playback:** QWERTY (Q–P) or MIDI note-on (C4–D5) instantly triggers each step with per-instrument samples.
 
 - **Interactive Circle of Fifths:** An SVG-based tool to visualize:
   - Key signatures
@@ -182,9 +183,11 @@ music-theory-codex/
 ├── src/
 │   ├── App.tsx                # Main application shell
 │   ├── CircleOfFifthsTool.tsx # Circle of Fifths component
-│   ├── InstrumentVisualizer.tsx # Instrument rendering logic
+│   ├── InstrumentVisualizer.tsx # Instrument rendering + playback triggers
+│   ├── audio/
+│   │   └── sampler.ts         # Lightweight Web Audio sampler for chord playback
 │   ├── data/
-│   │   ├── chords.ts          # Chord shape data for each instrument
+│   │   ├── chordShapes.ts     # Chord shape data for each instrument
 │   │   └── phases.ts          # Genre phases and progression data (70+ genres)
 │   ├── types/
 │   │   └── codex.ts           # Shared domain types
@@ -235,9 +238,16 @@ npm run preview
 
 ### Pivot by instrument
 
-1. In the **Instrument Visualizer**, choose **Piano**, **Guitar**, or **Ukulele**.
+1. In the **Instrument Visualizer**, choose **Piano**, **Guitar**, **Ukulele**, or **Bass** using the instrument selector next to **Export MIDI**.
 2. Hover the rendered shapes to read micro-copy about why a grip is chosen (e.g., voice-leading rationale, string-set choices).
-3. Use the genre dropdown to jump between idioms without losing your instrument context.
+3. Toggle **Mute/Sound on** to silence/resume playback when auditioning progressions in a meeting or classroom.
+4. Use the genre dropdown to jump between idioms without losing your instrument context.
+
+### Trigger playback
+
+1. Click any step in the progression flow or press **Q–P** on your keyboard to audition the matching chord with the selected instrument sample.
+2. Connect a MIDI controller; notes **C4–D5** map to the same ten steps shown on screen. A small badge next to the toolbar lights up when MIDI inputs are detected.
+3. Samples are preloaded on first render so playback stays snappy; browser autoplay policies still require a user gesture before sound starts.
 
 ### Circle of Fifths workflows
 
@@ -292,6 +302,7 @@ Keeping data in TypeScript makes it diff-friendly, reviewable, and easy to valid
 - **Docs-as-code first:** Everything lives in version control so theory edits can be reviewed like code.
 - **Instrument-forward UI:** The layout favors fretboard/keybed visuals over dense prose, with copy that explains *why* a voicing works.
 - **Performance:** Vite + React Suspense keep the experience snappy even when loading many chords.
+- **Sample footprint:** Four single-note, mono `.wav` samples (~75 KB each) are bundled via Vite’s asset pipeline. They are preloaded on app start so QWERTY/MIDI playback feels immediate without noticeable bandwidth overhead.
 - **Accessibility:** Semantic HTML, focus states, and descriptive labels aim to keep the codex usable with keyboards and screen readers.
 - **Portability:** The Docker image bakes the static assets into Nginx, so any registry/runtime combo can host it.
 
