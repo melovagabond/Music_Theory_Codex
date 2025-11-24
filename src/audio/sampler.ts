@@ -1,5 +1,33 @@
 import { CHORD_SHAPES, ChordShapeKey } from "../data/chordShapes";
 
+export const NOTE_BASE: Record<string, number> = {
+  C: 60,
+  "C#": 61,
+  Db: 61,
+  D: 62,
+  "D#": 63,
+  Eb: 63,
+  E: 64,
+  F: 65,
+  "F#": 66,
+  Gb: 66,
+  G: 67,
+  "G#": 68,
+  Ab: 68,
+  A: 69,
+  "A#": 70,
+  Bb: 70,
+  B: 71,
+};
+
+export const parseRootMidi = (symbol: string): number | null => {
+  const match = symbol.match(/^([A-Ga-g])(#{1}|b)?/);
+  if (!match) return null;
+  const [, root, accidental] = match;
+  const key = `${root.toUpperCase()}${accidental ?? ""}`;
+  return NOTE_BASE[key] ?? null;
+};
+
 type SampleConfig = {
   file: string;
   rootMidi: number;
@@ -27,6 +55,7 @@ const SAMPLE_CONFIG: Record<InstrumentKey, SampleConfig> = {
 };
 
 const sampleCache = new Map<InstrumentKey, AudioBuffer>();
+const sampleDataCache = new Map<InstrumentKey, ArrayBuffer>();
 let loadPromise: Promise<void> | null = null;
 let audioContext: AudioContext | null = null;
 
@@ -51,6 +80,7 @@ const fetchSamples = async () => {
       const arrayBuffer = await res.arrayBuffer();
       const buffer = await ctx.decodeAudioData(arrayBuffer);
       sampleCache.set(instrument, buffer);
+      sampleDataCache.set(instrument, arrayBuffer);
     })
   ).then(() => undefined);
 
@@ -66,26 +96,27 @@ export const warmupSamples = async () => {
 };
 
 const createVoice = (
-  ctx: AudioContext,
+  ctx: BaseAudioContext,
   buffer: AudioBuffer,
   playbackRate: number,
-  instrument: InstrumentKey
+  instrument: InstrumentKey,
+  destination: AudioNode,
+  startTime: number
 ) => {
   const source = ctx.createBufferSource();
   source.buffer = buffer;
   source.playbackRate.value = playbackRate;
 
   const gain = ctx.createGain();
-  const now = ctx.currentTime;
   const release = instrument === "bass" ? 2.6 : instrument === "piano" ? 1.6 : 1.4;
   const startGain = instrument === "bass" ? 0.85 : 0.7;
 
-  gain.gain.setValueAtTime(startGain, now);
-  gain.gain.exponentialRampToValueAtTime(0.0001, now + release);
+  gain.gain.setValueAtTime(startGain, startTime);
+  gain.gain.exponentialRampToValueAtTime(0.0001, startTime + release);
 
   source.connect(gain);
-  gain.connect(ctx.destination);
-  return { source, gain };
+  gain.connect(destination);
+  return { source, gain, release };
 };
 
 export const playChord = async (
@@ -113,15 +144,80 @@ export const playChord = async (
   intervals.forEach((interval) => {
     const targetMidi = rootMidi + interval;
     const playbackRate = Math.pow(2, (targetMidi - base) / 12);
-    const { source, gain } = createVoice(ctx, buffer, playbackRate, instrument);
+    const { source, gain, release } = createVoice(
+      ctx,
+      buffer,
+      playbackRate,
+      instrument,
+      ctx.destination,
+      now
+    );
     source.start(now);
-    source.stop(now + 4);
+    source.stop(now + release + 0.05);
     source.onended = () => {
       gain.disconnect();
     };
   });
 };
 
+type RenderableChord = {
+  symbol: string;
+  shape?: ChordShapeKey;
+};
+
+const getIntervalsForChord = (shapeKey?: ChordShapeKey) =>
+  CHORD_SHAPES[shapeKey ?? "Maj7"].pianoIntervals;
+
+export const renderProgressionOffline = async (
+  chords: RenderableChord[],
+  instrument: InstrumentKey,
+  tempoBpm = 88,
+  beatsPerChord = 4
+): Promise<AudioBuffer | null> => {
+  if (typeof window === "undefined") return null;
+  await fetchSamples();
+
+  const sampleData = sampleDataCache.get(instrument);
+  if (!sampleData) return null;
+
+  const sampleRate = 44100;
+  const secondsPerBeat = 60 / tempoBpm;
+  const chordDuration = beatsPerChord * secondsPerBeat;
+  const releaseTail = instrument === "bass" ? 2.6 : instrument === "piano" ? 1.6 : 1.4;
+  const totalDuration = chords.length * chordDuration + releaseTail + 0.5;
+
+  const offlineCtx = new OfflineAudioContext(
+    2,
+    Math.ceil(totalDuration * sampleRate),
+    sampleRate
+  );
+
+  const decodedSample = await offlineCtx.decodeAudioData(sampleData.slice(0));
+  const base = SAMPLE_CONFIG[instrument].rootMidi;
+
+  chords.forEach((chord, idx) => {
+    const rootMidi = parseRootMidi(chord.symbol) ?? 60;
+    const intervals = getIntervalsForChord(chord.shape as ChordShapeKey);
+    const startTime = idx * chordDuration + 0.05;
+
+    intervals.forEach((interval: number) => {
+      const targetMidi = rootMidi + interval;
+      const playbackRate = Math.pow(2, (targetMidi - base) / 12);
+      const { source, gain, release } = createVoice(
+        offlineCtx,
+        decodedSample,
+        playbackRate,
+        instrument,
+        offlineCtx.destination,
+        startTime
+      );
+      source.start(startTime);
+      source.stop(startTime + release + 0.05);
+      source.onended = () => gain.disconnect();
+    });
+  });
+
+  return offlineCtx.startRendering();
 export const playNote = async (midiNote: number, instrument: InstrumentKey) => {
   const ctx = getContext();
   if (!ctx) return;
