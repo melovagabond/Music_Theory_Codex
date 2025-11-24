@@ -125,11 +125,24 @@ export const useMidiInput = (options: UseMidiInputOptions = {}): MidiHookReturn 
 
   const attachListenersRef = useRef<(() => void) | null>(null);
 
-  const inputs = useMemo(() => {
-    if (!midiAccess) return [] as MidiInput[];
+  const snapshotMidiAccess = (
+    access: SimplifiedMidiAccess | MIDIAccess
+  ): SimplifiedMidiAccess | MIDIAccess => {
+    const midiInputs = (access as SimplifiedMidiAccess).inputs ?? new Map();
+    return {
+      ...(access as SimplifiedMidiAccess),
+      inputs: midiInputs,
+    };
+  };
 
-    const collection = midiAccess.inputs as any;
-    if (typeof collection.values === "function") {
+  const inputs = useMemo(() => {
+    if (!midiAccess || !(midiAccess as SimplifiedMidiAccess).inputs) {
+      return [] as MidiInput[];
+    }
+
+    const collection = (midiAccess as SimplifiedMidiAccess).inputs as any;
+
+    if (collection && typeof collection.values === "function") {
       return Array.from(collection.values()) as MidiInput[];
     }
 
@@ -147,10 +160,12 @@ export const useMidiInput = (options: UseMidiInputOptions = {}): MidiHookReturn 
     })
       .requestMIDIAccess?.()
       .then((access) => {
-        setMidiAccess(access);
+        setMidiAccess(snapshotMidiAccess(access));
         setStatus("listening");
 
-        const handleStateChange = () => setMidiAccess({ ...(access as any) });
+        const handleStateChange = () => {
+          setMidiAccess(snapshotMidiAccess(access));
+        };
 
         if (access.addEventListener) {
           access.addEventListener("statechange", handleStateChange);
