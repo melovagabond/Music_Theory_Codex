@@ -146,7 +146,11 @@ export const useMidiInput = (options: UseMidiInputOptions = {}): MidiHookReturn 
       return Array.from(collection.values()) as MidiInput[];
     }
 
-    return Array.from(collection || []) as MidiInput[];
+    if (collection && typeof collection[Symbol.iterator] === "function") {
+      return Array.from(collection as Iterable<MidiInput>);
+    }
+
+    return [] as MidiInput[];
   }, [midiAccess]);
 
   useEffect(() => {
@@ -155,37 +159,62 @@ export const useMidiInput = (options: UseMidiInputOptions = {}): MidiHookReturn 
     setStatus("pending");
     setPermissionError(null);
 
-    (navigator as Navigator & {
+    const requestMidiAccess = (navigator as Navigator & {
       requestMIDIAccess?: () => Promise<SimplifiedMidiAccess | MIDIAccess>;
-    })
-      .requestMIDIAccess?.()
-      .then((access) => {
-        setMidiAccess(snapshotMidiAccess(access));
-        setStatus("listening");
+    }).requestMIDIAccess;
 
-        const handleStateChange = () => {
-          setMidiAccess(snapshotMidiAccess(access));
-        };
+    if (!requestMidiAccess) {
+      setStatus("unsupported");
+      setPermissionError("Web MIDI is not available in this environment.");
+      setIsEnabled(false);
+      return;
+    }
 
-        if (access.addEventListener) {
-          access.addEventListener("statechange", handleStateChange);
-          attachListenersRef.current = () =>
-            access.removeEventListener?.("statechange", handleStateChange);
-        } else {
-          access.onstatechange = handleStateChange;
-          attachListenersRef.current = () => {
-            if (access.onstatechange === handleStateChange) {
-              access.onstatechange = null;
-            }
-          };
-        }
-      })
-      .catch((err) => {
+    try {
+      const midiPromise = requestMidiAccess();
+
+      if (!midiPromise || typeof (midiPromise as any).then !== "function") {
         setStatus("error");
-        setPermissionError(
-          err?.message ?? "MIDI permission was blocked or unavailable."
-        );
-      });
+        setPermissionError("Web MIDI did not return a valid response.");
+        setIsEnabled(false);
+        return;
+      }
+
+      (midiPromise as Promise<SimplifiedMidiAccess | MIDIAccess>)
+        .then((access) => {
+          setMidiAccess(snapshotMidiAccess(access));
+          setStatus("listening");
+
+          const handleStateChange = () => {
+            setMidiAccess(snapshotMidiAccess(access));
+          };
+
+          if (access.addEventListener) {
+            access.addEventListener("statechange", handleStateChange);
+            attachListenersRef.current = () =>
+              access.removeEventListener?.("statechange", handleStateChange);
+          } else {
+            access.onstatechange = handleStateChange;
+            attachListenersRef.current = () => {
+              if (access.onstatechange === handleStateChange) {
+                access.onstatechange = null;
+              }
+            };
+          }
+        })
+        .catch((err) => {
+          setStatus("error");
+          setPermissionError(
+            err?.message ?? "MIDI permission was blocked or unavailable."
+          );
+        });
+    } catch (err: any) {
+      setStatus("error");
+      setPermissionError(
+        err?.message ?? "Web MIDI could not be initialized in this browser."
+      );
+      setIsEnabled(false);
+    }
 
     return () => {
       attachListenersRef.current?.();
