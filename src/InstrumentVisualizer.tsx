@@ -1,8 +1,4 @@
-<<<<<<< ours
-import React, { useEffect, useMemo, useRef, useState } from "react";
-=======
-import React, { useCallback, useEffect, useMemo, useState } from "react";
->>>>>>> theirs
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Piano,
   Guitar,
@@ -11,22 +7,17 @@ import {
   Keyboard,
   Download,
   Lightbulb,
-<<<<<<< ours
   RadioReceiver,
   Power,
   AlertTriangle,
-} from "lucide-react";
-import type { Genre, ProgressionChord } from "./types/codex";
-import { useMidiInput } from "./hooks/useMidiInput";
-=======
   Volume2,
   VolumeX,
   Radio,
 } from "lucide-react";
 import type { Genre, ProgressionChord } from "./types/codex";
+import { useMidiInput } from "./hooks/useMidiInput";
 import { CHORD_SHAPES, ChordShapeKey } from "./data/chordShapes";
 import { InstrumentKey, playChord, warmupSamples } from "./audio/sampler";
->>>>>>> theirs
 
 interface InstrumentVisualizerProps {
   genre: Genre;
@@ -161,7 +152,7 @@ const buildMidiFile = (progression: ProgressionChord[]): Uint8Array => {
 const splitProgression = (progression: string): string[] =>
   progression
     .split(/[-–→>/]/)
-    .map(p => p.trim())
+    .map((p) => p.trim())
     .filter(Boolean);
 
 const guessShapeFromToken = (token: string): ChordShapeKey => {
@@ -182,9 +173,7 @@ const guessShapeFromToken = (token: string): ChordShapeKey => {
   return /v/.test(normalized) ? "Dom7" : "Maj7";
 };
 
-export const deriveProgressionChords = (
-  genre: Genre
-): ProgressionChord[] => {
+export const deriveProgressionChords = (genre: Genre): ProgressionChord[] => {
   if (genre.progressionChords && genre.progressionChords.length > 0) {
     return genre.progressionChords;
   }
@@ -210,9 +199,11 @@ export const deriveProgressionChords = (
 // --- visual subcomponents ---
 
 // Piano: one-octave keyboard diagram
-const KeyboardDiagram: React.FC<{ intervals: readonly number[] }> = ({ intervals }) => {
+const KeyboardDiagram: React.FC<{ intervals: readonly number[] }> = ({
+  intervals,
+}) => {
   const active = useMemo(
-    () => intervals.map(v => ((v % 12) + 12) % 12),
+    () => intervals.map((v) => ((v % 12) + 12) % 12),
     [intervals]
   );
 
@@ -249,7 +240,8 @@ const KeyboardDiagram: React.FC<{ intervals: readonly number[] }> = ({ intervals
         {blackMap.map(({ note, between }, idx) => {
           const isActive = active.includes(note);
           const left =
-            ((between + 1) / (whiteNotes.length)) * 100 - 100 / (whiteNotes.length * 4);
+            ((between + 1) / whiteNotes.length) * 100 -
+            100 / (whiteNotes.length * 4);
           return (
             <div
               key={idx}
@@ -273,7 +265,7 @@ const KeyboardDiagram: React.FC<{ intervals: readonly number[] }> = ({ intervals
 
 // 6-string guitar fretboard (4-fret window)
 const GuitarFretboard: React.FC<{ frets: readonly number[] }> = ({ frets }) => {
-  const numericFrets = frets.filter(f => f > 0);
+  const numericFrets = frets.filter((f) => f > 0);
   const minFret = numericFrets.length ? Math.min(...numericFrets) : 1;
   const startFret = Math.max(1, minFret);
   const endFret = startFret + 3;
@@ -296,7 +288,7 @@ const GuitarFretboard: React.FC<{ frets: readonly number[] }> = ({ frets }) => {
               {Array.from(
                 { length: endFret - startFret + 1 },
                 (_, i) => startFret + i
-              ).map(fretNumber => {
+              ).map((fretNumber) => {
                 const isActive = fret === fretNumber;
                 return (
                   <div
@@ -324,7 +316,7 @@ const GuitarFretboard: React.FC<{ frets: readonly number[] }> = ({ frets }) => {
 
 // 4-string uke fretboard (4-fret window)
 const UkeFretboard: React.FC<{ frets: readonly number[] }> = ({ frets }) => {
-  const numericFrets = frets.filter(f => f > 0);
+  const numericFrets = frets.filter((f) => f > 0);
   const minFret = numericFrets.length ? Math.min(...numericFrets) : 1;
   const startFret = Math.max(1, minFret);
   const endFret = startFret + 3;
@@ -345,7 +337,7 @@ const UkeFretboard: React.FC<{ frets: readonly number[] }> = ({ frets }) => {
               {Array.from(
                 { length: endFret - startFret + 1 },
                 (_, i) => startFret + i
-              ).map(fretNumber => {
+              ).map((fretNumber) => {
                 const isActive = fret === fretNumber;
                 return (
                   <div
@@ -385,21 +377,12 @@ export const InstrumentVisualizer: React.FC<InstrumentVisualizerProps> = ({
   const [activeIndex, setActiveIndex] = useState(0);
   const [pressedKey, setPressedKey] = useState<KeyBinding | null>(null);
   const [showExplain, setShowExplain] = useState(false);
-<<<<<<< ours
   const [midiFocusIndex, setMidiFocusIndex] = useState<number | null>(null);
+  const [instrument, setInstrument] = useState<InstrumentKey>("piano");
+  const [muted, setMuted] = useState(false);
   const active = chords[activeIndex] ?? chords[0];
 
   const midiNoteToIndexRef = useRef(new Map<number, number>());
-
-  const shapeKey: ChordShapeKey =
-    (active?.shape as ChordShapeKey) ||
-    (genre.visual_chord as ChordShapeKey) ||
-    "Maj7";
-=======
-  const [instrument, setInstrument] = useState<InstrumentKey>("piano");
-  const [muted, setMuted] = useState(false);
-  const [midiConnected, setMidiConnected] = useState(false);
-  const active = chords[activeIndex] ?? chords[0];
 
   const resolveShapeKey = useCallback(
     (chord?: ProgressionChord): ChordShapeKey =>
@@ -410,8 +393,6 @@ export const InstrumentVisualizer: React.FC<InstrumentVisualizerProps> = ({
   );
 
   const shapeKey: ChordShapeKey = resolveShapeKey(active);
->>>>>>> theirs
-
   const shape = CHORD_SHAPES[shapeKey];
 
   const handleExportMidi = () => {
@@ -550,7 +531,6 @@ export const InstrumentVisualizer: React.FC<InstrumentVisualizerProps> = ({
     [chords]
   );
 
-<<<<<<< ours
   const midiStatusColor = !midiSupported
     ? "bg-rose-500"
     : midiStatus === "listening"
@@ -570,53 +550,6 @@ export const InstrumentVisualizer: React.FC<InstrumentVisualizerProps> = ({
     : midiStatus === "error"
     ? midiError ?? "MIDI permission was blocked."
     : "Ready to enable MIDI input.";
-=======
-  useEffect(() => {
-    const nav = navigator as Navigator & {
-      requestMIDIAccess?: () => Promise<any>;
-    };
-
-    if (!nav.requestMIDIAccess) return;
-
-    let inputs: any[] = [];
-    let access: any;
-
-    const handleMessage = (event: any) => {
-      const [status, note, velocity] = event.data || [];
-      const isNoteOn = (status & 0xf0) === 0x90 && velocity > 0;
-      if (!isNoteOn) return;
-      const idx = MIDI_KEY_BINDINGS.indexOf(note);
-      if (idx >= 0) {
-        const targetIndex = Math.min(idx, chords.length - 1);
-        setActiveIndex(targetIndex);
-        playChordForStep(targetIndex);
-      }
-    };
-
-    nav
-      .requestMIDIAccess()
-      .then((midiAccess) => {
-        access = midiAccess;
-        inputs = Array.from(midiAccess.inputs.values());
-        setMidiConnected(inputs.some((i: any) => i.state === "connected"));
-        inputs.forEach((input) => input.addEventListener("midimessage", handleMessage));
-        midiAccess.onstatechange = () =>
-          setMidiConnected(
-            Array.from(midiAccess.inputs.values()).some(
-              (input: any) => input.state === "connected"
-            )
-          );
-      })
-      .catch(() => setMidiConnected(false));
-
-    return () => {
-      inputs.forEach((input) =>
-        input?.removeEventListener?.("midimessage", handleMessage)
-      );
-      if (access) access.onstatechange = null;
-    };
-  }, [chords.length, playChordForStep]);
->>>>>>> theirs
 
   return (
     <section>
@@ -655,7 +588,6 @@ export const InstrumentVisualizer: React.FC<InstrumentVisualizerProps> = ({
         ))}
       </div>
 
-<<<<<<< ours
       <div className="mb-4 space-y-3">
         <div className="flex flex-wrap gap-2 text-xs">
           <button
@@ -663,6 +595,38 @@ export const InstrumentVisualizer: React.FC<InstrumentVisualizerProps> = ({
             className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-slate-900 border border-slate-800 text-slate-100 hover:border-emerald-400 hover:text-emerald-100"
           >
             <Download className="h-4 w-4" /> Export MIDI
+          </button>
+          <div className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-slate-900 border border-slate-800 text-slate-100">
+            <Radio className="h-4 w-4 text-emerald-300" />
+            <label className="text-[11px] uppercase tracking-wide text-slate-400">
+              Instrument
+            </label>
+            <select
+              value={instrument}
+              onChange={(e) => setInstrument(e.target.value as InstrumentKey)}
+              className="bg-slate-950 border border-slate-700 text-slate-100 rounded px-2 py-1 text-xs focus:outline-none focus:border-emerald-400"
+            >
+              {INSTRUMENT_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button
+            onClick={() => setMuted((val) => !val)}
+            className={`inline-flex items-center gap-2 px-3 py-2 rounded-md border transition-colors ${
+              muted
+                ? "bg-rose-900/40 border-rose-500/60 text-rose-100"
+                : "bg-slate-900 border-slate-800 text-slate-100 hover:border-emerald-400"
+            }`}
+          >
+            {muted ? (
+              <VolumeX className="h-4 w-4" />
+            ) : (
+              <Volume2 className="h-4 w-4" />
+            )}
+            {muted ? "Muted" : "Sound on"}
           </button>
           <button
             onClick={() => setShowExplain((val) => !val)}
@@ -709,9 +673,7 @@ export const InstrumentVisualizer: React.FC<InstrumentVisualizerProps> = ({
               {midiInputs.length === 0 && (
                 <option value="">No inputs detected</option>
               )}
-              {midiInputs.length > 0 && (
-                <option value="">All inputs</option>
-              )}
+              {midiInputs.length > 0 && <option value="">All inputs</option>}
               {midiInputs.map((input) => (
                 <option key={input.id} value={input.id}>
                   {input.manufacturer ? `${input.manufacturer} — ` : ""}
@@ -735,65 +697,6 @@ export const InstrumentVisualizer: React.FC<InstrumentVisualizerProps> = ({
             )}
           </div>
         </div>
-=======
-      <div className="flex flex-wrap gap-2 mb-4 text-xs">
-        <button
-          onClick={handleExportMidi}
-          className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-slate-900 border border-slate-800 text-slate-100 hover:border-emerald-400 hover:text-emerald-100"
-        >
-          <Download className="h-4 w-4" /> Export MIDI
-        </button>
-        <div className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-slate-900 border border-slate-800 text-slate-100">
-          <Radio className="h-4 w-4 text-emerald-300" />
-          <label className="text-[11px] uppercase tracking-wide text-slate-400">
-            Instrument
-          </label>
-          <select
-            value={instrument}
-            onChange={(e) => setInstrument(e.target.value as InstrumentKey)}
-            className="bg-slate-950 border border-slate-700 text-slate-100 rounded px-2 py-1 text-xs focus:outline-none focus:border-emerald-400"
-          >
-            {INSTRUMENT_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </div>
-        <button
-          onClick={() => setMuted((val) => !val)}
-          className={`inline-flex items-center gap-2 px-3 py-2 rounded-md border transition-colors ${
-            muted
-              ? "bg-rose-900/40 border-rose-500/60 text-rose-100"
-              : "bg-slate-900 border-slate-800 text-slate-100 hover:border-emerald-400"
-          }`}
-        >
-          {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />} 
-          {muted ? "Muted" : "Sound on"}
-        </button>
-        <div
-          className={`inline-flex items-center gap-2 px-3 py-2 rounded-md border ${
-            midiConnected
-              ? "border-emerald-500/70 bg-emerald-500/10 text-emerald-100"
-              : "border-slate-800 bg-slate-950 text-slate-200"
-          }`}
-        >
-          <Keyboard className="h-4 w-4" />
-          <span className="text-[11px] uppercase tracking-wide">
-            {midiConnected ? "MIDI listening" : "MIDI idle"}
-          </span>
-        </div>
-        <button
-          onClick={() => setShowExplain((val) => !val)}
-          className={`inline-flex items-center gap-2 px-3 py-2 rounded-md border transition-colors ${
-            showExplain
-              ? "bg-indigo-600/20 border-indigo-400 text-indigo-100"
-              : "bg-slate-900 border-slate-800 text-slate-100 hover:border-indigo-400"
-          }`}
-        >
-          <Lightbulb className="h-4 w-4" /> Explain this progression
-        </button>
->>>>>>> theirs
       </div>
 
       {/* Active chord explanation */}
@@ -819,8 +722,12 @@ export const InstrumentVisualizer: React.FC<InstrumentVisualizerProps> = ({
                 key={item.title}
                 className="rounded-md border border-indigo-700/50 bg-indigo-900/40 p-3"
               >
-                <p className="font-mono text-indigo-100 text-sm">{item.title}</p>
-                <p className="text-slate-200 mt-1 leading-relaxed">{item.detail}</p>
+                <p className="font-mono text-indigo-100 text-sm">
+                  {item.title}
+                </p>
+                <p className="text-slate-200 mt-1 leading-relaxed">
+                  {item.detail}
+                </p>
               </div>
             ))}
           </div>
@@ -884,7 +791,9 @@ export const InstrumentVisualizer: React.FC<InstrumentVisualizerProps> = ({
           {KEY_BINDINGS.map((key, idx) => {
             const midiActive = midiFocusIndex === idx;
             const fallbackActive =
-              idx === activeIndex && pressedKey === null && midiFocusIndex === null;
+              idx === activeIndex &&
+              pressedKey === null &&
+              midiFocusIndex === null;
             const isActive = pressedKey === key || fallbackActive || midiActive;
             return (
               <div
@@ -900,7 +809,9 @@ export const InstrumentVisualizer: React.FC<InstrumentVisualizerProps> = ({
                 }`}
               >
                 <div className="font-bold">{key.toUpperCase()}</div>
-                <div className="text-[10px] text-slate-400">{`Step ${idx + 1}`}</div>
+                <div className="text-[10px] text-slate-400">{`Step ${
+                  idx + 1
+                }`}</div>
               </div>
             );
           })}
