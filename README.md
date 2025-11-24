@@ -267,6 +267,11 @@ The **Export MIDI** button in the Instrument Visualizer turns whatever progressi
 - **Workflow tips:**
   - Drop the file into your DAW, quantize or humanize as needed, then swap the instrument patch to taste.
   - Use the keyboard hotkeys (`A`–`G` layout) to audition alternate steps before exporting, keeping the performance loop tight.
+- **Live MIDI input (beta):**
+  - Enable Web MIDI in the Instrument Visualizer to let hardware controllers step through the progression (note on/off) or nudge forward/backward with CC data.
+  - Tested with compact controllers like the **Akai MPK Mini**, **Arturia KeyStep**, and **Launchkey Mini**—any class-compliant device that enumerates as a Web MIDI input should work.
+  - Web MIDI is currently supported in Chromium-based browsers. Firefox and Safari require flags/permissions and may not expose `navigator.requestMIDIAccess` without experimental settings.
+  - If permissions are denied, use the in-app warning near the Export MIDI controls to retry after adjusting browser/device prompts.
 
 Future iterations will layer in per-step durations, swing/humanization controls, and multi-track exports for split voicings (bass + comping).
 
