@@ -28,7 +28,9 @@ PERFORM_CLEAN_SHUTDOWN=true
 if [[ ${RELAUNCH_SKIP_CLEAN_SHUTDOWN:-} =~ ^(1|true|yes)$ ]]; then PERFORM_CLEAN_SHUTDOWN=false; fi
 
 COMPOSE_FILE=${COMPOSE_FILE:-docker-compose.yml}
-APP_SERVICE=${APP_SERVICE:-web}
+APP_SERVICE=${APP_SERVICE:-music_codex}
+DOCKER_BUILDKIT=${DOCKER_BUILDKIT:-0}
+COMPOSE_DOCKER_CLI_BUILD=${COMPOSE_DOCKER_CLI_BUILD:-0}
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -43,7 +45,7 @@ Env:
   RELAUNCH_SKIP_PRUNE=false          # run docker prune without -p (default skips prune)
   RELAUNCH_FORCE_PRUNE=true          # force docker prune even if env says skip
   RELAUNCH_VERIFY_DELAY=3            # seconds to wait before ps check
-  APP_SERVICE=web                    # docker compose service name
+  APP_SERVICE=music_codex            # docker compose service name
   COMPOSE_FILE=docker-compose.yml    # compose file to use
 USAGE
       exit 0;;
@@ -106,10 +108,13 @@ fi
 
 # 5) Build image(s) via compose
 print_status "Building Docker image for ${APP_SERVICE}…"
-if $COMPOSE -f "${COMPOSE_FILE}" build --pull "${APP_SERVICE}"; then
+BUILD_ENV=("DOCKER_BUILDKIT=${DOCKER_BUILDKIT}" "COMPOSE_DOCKER_CLI_BUILD=${COMPOSE_DOCKER_CLI_BUILD}")
+BUILD_LOG=$(mktemp -t music_codex_build.XXXX.log)
+if env "${BUILD_ENV[@]}" $COMPOSE -f "${COMPOSE_FILE}" build --pull "${APP_SERVICE}" 2>&1 | tee "${BUILD_LOG}"; then
   print_success "Build complete"
 else
-  print_error "Docker build failed"; exit 1
+  BUILD_EXIT=${PIPESTATUS[0]:-1}
+  print_error "Docker build failed with exit code ${BUILD_EXIT}. Full log: ${BUILD_LOG}"; tail -n 20 "${BUILD_LOG}"; exit 1
 fi
 
 # 6) Test (local build validation)
