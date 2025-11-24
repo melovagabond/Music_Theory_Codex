@@ -218,4 +218,26 @@ export const renderProgressionOffline = async (
   });
 
   return offlineCtx.startRendering();
+export const playNote = async (midiNote: number, instrument: InstrumentKey) => {
+  const ctx = getContext();
+  if (!ctx) return;
+
+  if (ctx.state === "suspended") {
+    await ctx.resume();
+  }
+
+  await fetchSamples();
+  const buffer = sampleCache.get(instrument);
+  if (!buffer) return;
+
+  const base = SAMPLE_CONFIG[instrument].rootMidi;
+  const playbackRate = Math.pow(2, (midiNote - base) / 12);
+  const now = ctx.currentTime + 0.01;
+
+  const { source, gain } = createVoice(ctx, buffer, playbackRate, instrument);
+  source.start(now);
+  source.stop(now + 4);
+  source.onended = () => {
+    gain.disconnect();
+  };
 };

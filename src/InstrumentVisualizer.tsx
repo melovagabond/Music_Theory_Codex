@@ -25,6 +25,10 @@ import {
   warmupSamples,
 } from "./audio/sampler";
 import { encodeAudioBufferToMp3 } from "./audio/encoder";
+import {
+  InteractiveKeyboard,
+  NoteMetadata,
+} from "./components/InteractiveKeyboard";
 
 interface InstrumentVisualizerProps {
   genre: Genre;
@@ -359,8 +363,8 @@ export const InstrumentVisualizer: React.FC<InstrumentVisualizerProps> = ({
   const [muted, setMuted] = useState(false);
   const [exportingMp3, setExportingMp3] = useState(false);
   const [mp3Error, setMp3Error] = useState<string | null>(null);
+  const [lastPlayedNote, setLastPlayedNote] = useState<string | null>(null);
   const active = chords[activeIndex] ?? chords[0];
-
   const midiNoteToIndexRef = useRef(new Map<number, number>());
 
   const resolveShapeKey = useCallback(
@@ -424,6 +428,21 @@ export const InstrumentVisualizer: React.FC<InstrumentVisualizerProps> = ({
     warmupSamples();
   }, []);
 
+  const handleKeyboardNoteStart = useCallback(
+    (_midi: number, meta: NoteMetadata) => {
+      const sourceLabel = meta.source === "keyboard" ? "keys" : "pointer";
+      setLastPlayedNote(`${meta.label} via ${sourceLabel}`);
+    },
+    []
+  );
+
+  const handleKeyboardNoteEnd = useCallback(
+    (_midi: number, _meta: NoteMetadata) => {
+      // hook for loop recording/overdubs
+    },
+    []
+  );
+
   const playChordForStep = useCallback(
     (idx: number) => {
       if (muted) return;
@@ -450,6 +469,7 @@ export const InstrumentVisualizer: React.FC<InstrumentVisualizerProps> = ({
     );
 
     const downHandler = (event: KeyboardEvent) => {
+      if (event.defaultPrevented) return;
       const key = event.key.toLowerCase() as KeyBinding;
       if (!mapping.has(key)) return;
       const idx = mapping.get(key);
@@ -461,6 +481,7 @@ export const InstrumentVisualizer: React.FC<InstrumentVisualizerProps> = ({
     };
 
     const upHandler = (event: KeyboardEvent) => {
+      if (event.defaultPrevented) return;
       const key = event.key.toLowerCase() as KeyBinding;
       if (mapping.has(key)) {
         setPressedKey((current) => (current === key ? null : current));
@@ -809,6 +830,33 @@ export const InstrumentVisualizer: React.FC<InstrumentVisualizerProps> = ({
             Tuned to <span className="font-mono">G–C–E–A</span>. Use this as a
             starting voicing and adjust for comfort.
           </p>
+        </div>
+      </div>
+
+      <div className="mt-4 bg-slate-900 border border-slate-800 rounded-lg p-4">
+        <div className="flex flex-wrap items-center gap-2 text-slate-200 text-sm mb-2">
+          <Keyboard className="h-4 w-4 text-emerald-400" />
+          Playable keyboard (two octaves)
+          <span className="text-[10px] uppercase tracking-wide text-slate-500">
+            Z–M for C4–B4, Q–U with 2/3/5/6/7 for C5–B5
+          </span>
+        </div>
+        <InteractiveKeyboard
+          instrument={instrument}
+          muted={muted}
+          onNoteStart={handleKeyboardNoteStart}
+          onNoteEnd={handleKeyboardNoteEnd}
+        />
+        <div className="mt-2 text-[11px] text-slate-400 flex flex-wrap gap-3 items-center">
+          <span>
+            Click or use the bindings to trigger the sampler; callbacks fire for loop
+            recorders.
+          </span>
+          {lastPlayedNote && (
+            <span className="text-emerald-200 font-semibold">
+              Last note: {lastPlayedNote}
+            </span>
+          )}
         </div>
       </div>
 
