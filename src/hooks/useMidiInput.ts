@@ -11,6 +11,7 @@ type SimplifiedMidiAccess = {
     type: "statechange",
     listener: (event: Event) => void
   ) => void;
+  cleanup?: () => Promise<void> | void;
 };
 
 type MidiInput = {
@@ -56,8 +57,11 @@ type UseMidiInputOptions = {
 
 type MidiStatus = "idle" | "pending" | "listening" | "unsupported" | "error";
 
+type MidiProvider = "webmidi" | "serial" | "usb";
+
 type MidiHookReturn = {
   supported: boolean;
+  provider: MidiProvider | null;
   status: MidiStatus;
   permissionError: string | null;
   isEnabled: boolean;
@@ -107,23 +111,241 @@ const normalizeMessage = (
   }
 };
 
+const midiByteBuffer = (emit: (data: Uint8Array) => void) => {
+  const buffer: number[] = [];
+
+  return {
+    push: (bytes: Iterable<number>) => {
+      for (const byte of bytes) {
+        buffer.push(byte);
+
+        while (buffer.length >= 3) {
+          const chunk = buffer.splice(0, 3);
+          emit(new Uint8Array(chunk));
+        }
+      }
+    },
+    clear: () => {
+      buffer.length = 0;
+    },
+  };
+};
+
+const createMidiInputShim = (id: string, name: string) => {
+  const listeners = new Set<(event: MidiMessageEvent) => void>();
+
+  const input: MidiInput = {
+    id,
+    name,
+    state: "connected",
+    onmidimessage: null,
+    addEventListener: (type, listener) => {
+      if (type === "midimessage") {
+        listeners.add(listener);
+      }
+    },
+    removeEventListener: (type, listener) => {
+      if (type === "midimessage") {
+        listeners.delete(listener);
+      }
+    },
+  };
+
+  const emit = (data: Uint8Array) => {
+    const event: MidiMessageEvent = { data, target: input };
+    input.onmidimessage?.(event);
+    listeners.forEach((listener) => listener(event));
+  };
+
+  return { input, emit };
+};
+
+const requestSerialMidiAccess = async (): Promise<SimplifiedMidiAccess> => {
+  const nav = navigator as Navigator & { serial?: any };
+
+  if (!nav.serial?.requestPort) {
+    throw new Error("Web Serial is not available in this browser.");
+  }
+
+  const port = await nav.serial.requestPort();
+  await port.open({ baudRate: 31250 });
+
+  const reader = port.readable?.getReader();
+
+  if (!reader) {
+    throw new Error("Unable to read from the selected MIDI serial device.");
+  }
+
+  const { input, emit } = createMidiInputShim(
+    "serial-midi-port",
+    "Serial MIDI",
+  );
+
+  const buffer = midiByteBuffer(emit);
+
+  const readLoop = async () => {
+    try {
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        const { value, done } = await reader.read();
+
+        if (done) break;
+        if (value) {
+          buffer.push(value as Iterable<number>);
+        }
+      }
+    } catch (err) {
+      console.error("Serial MIDI read error", err);
+    } finally {
+      buffer.clear();
+      reader.releaseLock();
+    }
+  };
+
+  readLoop();
+
+  return {
+    inputs: new Map([[input.id, input]]),
+    onstatechange: null,
+    cleanup: async () => {
+      try {
+        await reader.cancel();
+        await port.close();
+      } catch (err) {
+        console.warn("Serial MIDI cleanup issue", err);
+      }
+    },
+  };
+};
+
+const requestUsbMidiAccess = async (): Promise<SimplifiedMidiAccess> => {
+  const nav = navigator as Navigator & { usb?: any };
+
+  if (!nav.usb?.requestDevice) {
+    throw new Error("WebUSB is not available in this browser.");
+  }
+
+  const device = await nav.usb.requestDevice({
+    filters: [{ classCode: 1, subclassCode: 3 }],
+  });
+
+  await device.open();
+
+  if (!device.configuration && device.configurations?.length) {
+    await device.selectConfiguration(device.configurations[0].configurationValue);
+  }
+
+  const midiInterface = device.configuration?.interfaces.find((iface: any) =>
+    iface.alternates?.some(
+      (alt: any) => alt.interfaceClass === 1 && alt.interfaceSubclass === 3,
+    ),
+  );
+
+  if (!midiInterface) {
+    throw new Error("No MIDI-capable USB interface was found on this device.");
+  }
+
+  const alternate = midiInterface.alternates.find(
+    (alt: any) => alt.interfaceClass === 1 && alt.interfaceSubclass === 3,
+  );
+
+  const endpoint = alternate?.endpoints?.find((ep: any) => ep.direction === "in");
+
+  if (!endpoint) {
+    throw new Error("The selected USB device has no readable MIDI endpoint.");
+  }
+
+  await device.claimInterface(midiInterface.interfaceNumber);
+
+  const { input, emit } = createMidiInputShim("usb-midi-device", "USB MIDI");
+  const buffer = midiByteBuffer(emit);
+
+  const readLoop = async () => {
+    try {
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        const result = await device.transferIn(endpoint.endpointNumber, 64);
+        const dataView = result?.data as DataView | undefined;
+
+        if (dataView) {
+          const bytes = new Uint8Array(dataView.buffer);
+          buffer.push(bytes);
+        }
+      }
+    } catch (err) {
+      console.error("USB MIDI read error", err);
+    } finally {
+      buffer.clear();
+    }
+  };
+
+  readLoop();
+
+  return {
+    inputs: new Map([[input.id, input]]),
+    onstatechange: null,
+    cleanup: async () => {
+      try {
+        await device.releaseInterface(midiInterface.interfaceNumber);
+      } catch (err) {
+        console.warn("USB MIDI release issue", err);
+      }
+
+      try {
+        await device.close();
+      } catch (err) {
+        console.warn("USB MIDI close issue", err);
+      }
+    },
+  };
+};
+
+const resolveMidiProvider = (): {
+  provider: MidiProvider | null;
+  requestAccess?: () => Promise<SimplifiedMidiAccess | MIDIAccess>;
+} => {
+  if (typeof navigator === "undefined") {
+    return { provider: null };
+  }
+
+  const nav = navigator as Navigator & {
+    requestMIDIAccess?: () => Promise<SimplifiedMidiAccess | MIDIAccess>;
+    serial?: any;
+    usb?: any;
+  };
+
+  if (typeof nav.requestMIDIAccess === "function") {
+    return { provider: "webmidi", requestAccess: nav.requestMIDIAccess.bind(nav) };
+  }
+
+  if (nav.serial?.requestPort) {
+    return { provider: "serial", requestAccess: requestSerialMidiAccess };
+  }
+
+  if (nav.usb?.requestDevice) {
+    return { provider: "usb", requestAccess: requestUsbMidiAccess };
+  }
+
+  return { provider: null };
+};
+
 export const useMidiInput = (options: UseMidiInputOptions = {}): MidiHookReturn => {
   const { enabled = false, onNoteOn, onNoteOff, onControlChange } = options;
-  const supported =
-    typeof navigator !== "undefined" &&
-    typeof (navigator as Navigator & {
-      requestMIDIAccess?: () => Promise<SimplifiedMidiAccess | MIDIAccess>;
-    }).requestMIDIAccess === "function";
+  const { provider, requestAccess } = useMemo(resolveMidiProvider, []);
+  const supported = Boolean(provider && requestAccess);
 
   const [midiAccess, setMidiAccess] = useState<
     SimplifiedMidiAccess | MIDIAccess | null
   >(null);
-  const [status, setStatus] = useState<MidiStatus>(supported ? "idle" : "unsupported");
+  const [status, setStatus] = useState<MidiStatus>(
+    supported ? "idle" : "unsupported",
+  );
   const [permissionError, setPermissionError] = useState<string | null>(null);
   const [isEnabled, setIsEnabled] = useState(enabled);
   const [selectedInputId, setSelectedInputId] = useState<string | null>(null);
 
   const attachListenersRef = useRef<(() => void) | null>(null);
+  const accessCleanupRef = useRef<(() => void | Promise<void>) | null>(null);
 
   const snapshotMidiAccess = (
     access: SimplifiedMidiAccess | MIDIAccess
@@ -159,13 +381,11 @@ export const useMidiInput = (options: UseMidiInputOptions = {}): MidiHookReturn 
     setStatus("pending");
     setPermissionError(null);
 
-    const requestMidiAccess = (navigator as Navigator & {
-      requestMIDIAccess?: () => Promise<SimplifiedMidiAccess | MIDIAccess>;
-    }).requestMIDIAccess;
+    const requestMidiAccess = requestAccess;
 
     if (!requestMidiAccess) {
       setStatus("unsupported");
-      setPermissionError("Web MIDI is not available in this environment.");
+      setPermissionError("No MIDI provider is available in this browser.");
       setIsEnabled(false);
       return;
     }
@@ -175,7 +395,7 @@ export const useMidiInput = (options: UseMidiInputOptions = {}): MidiHookReturn 
 
       if (!midiPromise || typeof (midiPromise as any).then !== "function") {
         setStatus("error");
-        setPermissionError("Web MIDI did not return a valid response.");
+        setPermissionError("The MIDI provider did not return a valid response.");
         setIsEnabled(false);
         return;
       }
@@ -201,6 +421,11 @@ export const useMidiInput = (options: UseMidiInputOptions = {}): MidiHookReturn 
               }
             };
           }
+
+          accessCleanupRef.current = () => {
+            attachListenersRef.current?.();
+            (access as SimplifiedMidiAccess).cleanup?.();
+          };
         })
         .catch((err) => {
           setStatus("error");
@@ -211,16 +436,16 @@ export const useMidiInput = (options: UseMidiInputOptions = {}): MidiHookReturn 
     } catch (err: any) {
       setStatus("error");
       setPermissionError(
-        err?.message ?? "Web MIDI could not be initialized in this browser."
+        err?.message ?? "MIDI could not be initialized in this browser."
       );
       setIsEnabled(false);
     }
 
     return () => {
-      attachListenersRef.current?.();
+      accessCleanupRef.current?.();
       setMidiAccess(null);
     };
-  }, [isEnabled, supported]);
+  }, [isEnabled, requestAccess, supported]);
 
   useEffect(() => {
     if (!selectedInputId && inputs.length > 0) {
@@ -259,6 +484,7 @@ export const useMidiInput = (options: UseMidiInputOptions = {}): MidiHookReturn 
 
   return {
     supported,
+    provider,
     status,
     permissionError,
     isEnabled,
