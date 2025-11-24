@@ -119,7 +119,7 @@ fi
 
 # 6) Test (local build validation)
 print_status "Running frontend build for verification…"
-if npm run build; then
+if docker run --rm -v "$(pwd)":/app -w /app node:20-alpine sh -c "npm ci && npm run build"; then
   print_success "npm run build succeeded"
 else
   if [[ "${ALLOW_TEST_FAILURES}" == "true" ]]; then
