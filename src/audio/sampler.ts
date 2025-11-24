@@ -111,16 +111,12 @@ const SAMPLE_CONFIG: Record<Exclude<InstrumentKey, "drums">, SampleConfig> = {
   },
 };
 
-<<<<<<< ours
-const sampleCache = new Map<InstrumentKey, AudioBuffer>();
+const sampleCache = new Map<string, AudioBuffer>();
 const sampleDataCache = new Map<InstrumentKey, ArrayBuffer>();
-=======
 const DRUM_NOTE_MAP = new Map<number, DrumSampleConfig>(
   DRUM_SAMPLE_CONFIG.map((sample) => [sample.midi, sample])
 );
 
-const sampleCache = new Map<string, AudioBuffer>();
->>>>>>> theirs
 let loadPromise: Promise<void> | null = null;
 let audioContext: AudioContext | null = null;
 
@@ -136,44 +132,43 @@ const getContext = (): AudioContext | null => {
   return audioContext;
 };
 
+const prepareContext = async (): Promise<AudioContext | null> => {
+  const ctx = getContext();
+  if (!ctx) return null;
+  if (ctx.state === "suspended") {
+    await ctx.resume();
+  }
+  return ctx;
+};
+
 const fetchSamples = async () => {
   if (loadPromise) return loadPromise;
   const ctx = getContext();
   if (!ctx) return;
 
-<<<<<<< ours
-  loadPromise = Promise.all(
-    (Object.keys(SAMPLE_CONFIG) as InstrumentKey[]).map(async (instrument) => {
-      const { file } = SAMPLE_CONFIG[instrument];
-      const res = await fetch(file);
-      const arrayBuffer = await res.arrayBuffer();
-      const buffer = await ctx.decodeAudioData(arrayBuffer);
-      sampleCache.set(instrument, buffer);
-      sampleDataCache.set(instrument, arrayBuffer);
-    })
-  ).then(() => undefined);
-=======
-  const pitchedLoads = (Object.keys(
-    SAMPLE_CONFIG
-  ) as (keyof typeof SAMPLE_CONFIG)[]).map(async (instrument) => {
-    const { file } = SAMPLE_CONFIG[instrument];
-    const res = await fetch(file);
-    const arrayBuffer = await res.arrayBuffer();
-    const buffer = await ctx.decodeAudioData(arrayBuffer);
-    sampleCache.set(cacheKey(instrument), buffer);
-  });
+  loadPromise = (async () => {
+    await Promise.all(
+      (Object.keys(SAMPLE_CONFIG) as Array<Exclude<InstrumentKey, "drums">>).map(
+        async (instrument) => {
+          const { file } = SAMPLE_CONFIG[instrument];
+          const res = await fetch(file);
+          const arrayBuffer = await res.arrayBuffer();
+          const buffer = await ctx.decodeAudioData(arrayBuffer.slice(0));
+          sampleCache.set(cacheKey(instrument), buffer);
+          sampleDataCache.set(instrument, arrayBuffer);
+        }
+      )
+    );
 
-  const drumLoads = DRUM_SAMPLE_CONFIG.map(async (sample) => {
-    const res = await fetch(sample.file);
-    const arrayBuffer = await res.arrayBuffer();
-    const buffer = await ctx.decodeAudioData(arrayBuffer);
-    sampleCache.set(cacheKey("drums", sample.id), buffer);
-  });
-
-  loadPromise = Promise.all([...pitchedLoads, ...drumLoads]).then(
-    () => undefined
-  );
->>>>>>> theirs
+    await Promise.all(
+      DRUM_SAMPLE_CONFIG.map(async (sample) => {
+        const res = await fetch(sample.file);
+        const arrayBuffer = await res.arrayBuffer();
+        const buffer = await ctx.decodeAudioData(arrayBuffer.slice(0));
+        sampleCache.set(cacheKey("drums", sample.id), buffer);
+      })
+    );
+  })();
 
   return loadPromise;
 };
@@ -197,13 +192,70 @@ const DRUM_PATTERN = [
   { midi: 47, offset: 0.55 },
 ];
 
-export const playDrumNote = async (midiNote: number) => {
-  const ctx = getContext();
-  if (!ctx) return;
+const releaseForInstrument = (instrument: InstrumentKey) => {
+  if (instrument === "bass") return 2.6;
+  if (instrument === "piano") return 1.6;
+  if (instrument === "drums") return 0.9;
+  return 1.4;
+};
 
-  if (ctx.state === "suspended") {
-    await ctx.resume();
-  }
+const startGainForInstrument = (instrument: InstrumentKey) => {
+  if (instrument === "bass") return 0.85;
+  if (instrument === "drums") return 0.9;
+  return 0.7;
+};
+
+const createVoice = (
+  ctx: BaseAudioContext,
+  buffer: AudioBuffer,
+  playbackRate: number,
+  instrument: InstrumentKey,
+  destination: AudioNode = ctx.destination,
+  startTime = ctx.currentTime
+) => {
+  const source = ctx.createBufferSource();
+  source.buffer = buffer;
+  source.playbackRate.value = playbackRate;
+
+  const gain = ctx.createGain();
+  const release = releaseForInstrument(instrument);
+  const startGain = startGainForInstrument(instrument);
+
+  gain.gain.setValueAtTime(startGain, startTime);
+  gain.gain.exponentialRampToValueAtTime(0.0001, startTime + release);
+
+  source.connect(gain);
+  gain.connect(destination);
+
+  return { source, gain, release };
+};
+
+const scheduleVoice = (
+  ctx: BaseAudioContext,
+  buffer: AudioBuffer,
+  instrument: InstrumentKey,
+  playbackRate: number,
+  startTime: number,
+  duration?: number,
+  destination?: AudioNode
+) => {
+  const { source, gain, release } = createVoice(
+    ctx,
+    buffer,
+    playbackRate,
+    instrument,
+    destination ?? ctx.destination,
+    startTime
+  );
+  const stopTime = startTime + (duration ?? release + 0.05);
+  source.start(startTime);
+  source.stop(stopTime);
+  source.onended = () => gain.disconnect();
+};
+
+export const playDrumNote = async (midiNote: number) => {
+  const ctx = await prepareContext();
+  if (!ctx) return;
 
   await fetchSamples();
   const sample = DRUM_NOTE_MAP.get(midiNote);
@@ -213,60 +265,7 @@ export const playDrumNote = async (midiNote: number) => {
   if (!buffer) return;
 
   const startTime = ctx.currentTime + 0.01;
-  scheduleVoice(ctx, buffer, "drums", 1, startTime, 2);
-};
-
-const createVoice = (
-  ctx: BaseAudioContext,
-  buffer: AudioBuffer,
-  playbackRate: number,
-  instrument: InstrumentKey,
-  destination: AudioNode,
-  startTime: number
-) => {
-  const source = ctx.createBufferSource();
-  source.buffer = buffer;
-  source.playbackRate.value = playbackRate;
-
-  const gain = ctx.createGain();
-<<<<<<< ours
-  const release = instrument === "bass" ? 2.6 : instrument === "piano" ? 1.6 : 1.4;
-  const startGain = instrument === "bass" ? 0.85 : 0.7;
-=======
-  const now = ctx.currentTime;
-  const release =
-    instrument === "bass"
-      ? 2.6
-      : instrument === "piano"
-      ? 1.6
-      : instrument === "drums"
-      ? 0.9
-      : 1.4;
-  const startGain = instrument === "bass" ? 0.85 : instrument === "drums" ? 0.9 : 0.7;
->>>>>>> theirs
-
-  gain.gain.setValueAtTime(startGain, startTime);
-  gain.gain.exponentialRampToValueAtTime(0.0001, startTime + release);
-
-  source.connect(gain);
-  gain.connect(destination);
-  return { source, gain, release };
-};
-
-const scheduleVoice = (
-  ctx: AudioContext,
-  buffer: AudioBuffer,
-  instrument: InstrumentKey,
-  playbackRate: number,
-  startTime: number,
-  duration = 4
-) => {
-  const { source, gain } = createVoice(ctx, buffer, playbackRate, instrument);
-  source.start(startTime);
-  source.stop(startTime + duration);
-  source.onended = () => {
-    gain.disconnect();
-  };
+  scheduleVoice(ctx, buffer, "drums", 1, startTime);
 };
 
 export const playChord = async (
@@ -274,12 +273,8 @@ export const playChord = async (
   rootMidi: number,
   instrument: InstrumentKey
 ) => {
-  const ctx = getContext();
+  const ctx = await prepareContext();
   if (!ctx) return;
-
-  if (ctx.state === "suspended") {
-    await ctx.resume();
-  }
 
   await fetchSamples();
 
@@ -290,7 +285,7 @@ export const playChord = async (
       if (!sample) return;
       const buffer = getBuffer("drums", sample.id);
       if (!buffer) return;
-      scheduleVoice(ctx, buffer, instrument, 1, now + offset, 2);
+      scheduleVoice(ctx, buffer, instrument, 1, now + offset);
     });
     return;
   }
@@ -299,7 +294,7 @@ export const playChord = async (
   if (!buffer) return;
 
   const intervals =
-    CHORD_SHAPES[shapeKey]?.pianoIntervals || CHORD_SHAPES.Maj7.pianoIntervals;
+    CHORD_SHAPES[shapeKey]?.pianoIntervals ?? CHORD_SHAPES.Maj7.pianoIntervals;
 
   const base = SAMPLE_CONFIG[instrument].rootMidi;
   const now = ctx.currentTime + 0.02;
@@ -307,23 +302,7 @@ export const playChord = async (
   intervals.forEach((interval) => {
     const targetMidi = rootMidi + interval;
     const playbackRate = Math.pow(2, (targetMidi - base) / 12);
-<<<<<<< ours
-    const { source, gain, release } = createVoice(
-      ctx,
-      buffer,
-      playbackRate,
-      instrument,
-      ctx.destination,
-      now
-    );
-    source.start(now);
-    source.stop(now + release + 0.05);
-    source.onended = () => {
-      gain.disconnect();
-    };
-=======
     scheduleVoice(ctx, buffer, instrument, playbackRate, now);
->>>>>>> theirs
   });
 };
 
@@ -342,6 +321,8 @@ export const renderProgressionOffline = async (
   beatsPerChord = 4
 ): Promise<AudioBuffer | null> => {
   if (typeof window === "undefined") return null;
+  if (instrument === "drums") return null;
+
   await fetchSamples();
 
   const sampleData = sampleDataCache.get(instrument);
@@ -350,7 +331,7 @@ export const renderProgressionOffline = async (
   const sampleRate = 44100;
   const secondsPerBeat = 60 / tempoBpm;
   const chordDuration = beatsPerChord * secondsPerBeat;
-  const releaseTail = instrument === "bass" ? 2.6 : instrument === "piano" ? 1.6 : 1.4;
+  const releaseTail = releaseForInstrument(instrument);
   const totalDuration = chords.length * chordDuration + releaseTail + 0.5;
 
   const offlineCtx = new OfflineAudioContext(
@@ -370,41 +351,34 @@ export const renderProgressionOffline = async (
     intervals.forEach((interval: number) => {
       const targetMidi = rootMidi + interval;
       const playbackRate = Math.pow(2, (targetMidi - base) / 12);
-      const { source, gain, release } = createVoice(
+      scheduleVoice(
         offlineCtx,
         decodedSample,
-        playbackRate,
         instrument,
-        offlineCtx.destination,
+        playbackRate,
         startTime
       );
-      source.start(startTime);
-      source.stop(startTime + release + 0.05);
-      source.onended = () => gain.disconnect();
     });
   });
 
   return offlineCtx.startRendering();
-export const playNote = async (midiNote: number, instrument: InstrumentKey) => {
-  const ctx = getContext();
-  if (!ctx) return;
+};
 
-  if (ctx.state === "suspended") {
-    await ctx.resume();
+export const playNote = async (midiNote: number, instrument: InstrumentKey) => {
+  if (instrument === "drums") {
+    return playDrumNote(midiNote);
   }
 
+  const ctx = await prepareContext();
+  if (!ctx) return;
+
   await fetchSamples();
-  const buffer = sampleCache.get(instrument);
+  const buffer = getBuffer(instrument);
   if (!buffer) return;
 
   const base = SAMPLE_CONFIG[instrument].rootMidi;
   const playbackRate = Math.pow(2, (midiNote - base) / 12);
-  const now = ctx.currentTime + 0.01;
+  const startTime = ctx.currentTime + 0.01;
 
-  const { source, gain } = createVoice(ctx, buffer, playbackRate, instrument);
-  source.start(now);
-  source.stop(now + 4);
-  source.onended = () => {
-    gain.disconnect();
-  };
+  scheduleVoice(ctx, buffer, instrument, playbackRate, startTime);
 };

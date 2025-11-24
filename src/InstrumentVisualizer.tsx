@@ -18,26 +18,16 @@ import type { Genre, ProgressionChord } from "./types/codex";
 import { useMidiInput } from "./hooks/useMidiInput";
 import { CHORD_SHAPES, ChordShapeKey } from "./data/chordShapes";
 import {
-<<<<<<< ours
+  DRUM_PADS,
   InstrumentKey,
   parseRootMidi,
   playChord,
+  playDrumNote,
   renderProgressionOffline,
   warmupSamples,
 } from "./audio/sampler";
 import { encodeAudioBufferToMp3 } from "./audio/encoder";
-import {
-  InteractiveKeyboard,
-  NoteMetadata,
-} from "./components/InteractiveKeyboard";
-=======
-  DRUM_PADS,
-  InstrumentKey,
-  playChord,
-  playDrumNote,
-  warmupSamples,
-} from "./audio/sampler";
->>>>>>> theirs
+import { InteractiveKeyboard, NoteMetadata } from "./components/InteractiveKeyboard";
 
 interface InstrumentVisualizerProps {
   genre: Genre;
@@ -371,13 +361,10 @@ export const InstrumentVisualizer: React.FC<InstrumentVisualizerProps> = ({
   const [midiFocusIndex, setMidiFocusIndex] = useState<number | null>(null);
   const [instrument, setInstrument] = useState<InstrumentKey>("piano");
   const [muted, setMuted] = useState(false);
-<<<<<<< ours
   const [exportingMp3, setExportingMp3] = useState(false);
   const [mp3Error, setMp3Error] = useState<string | null>(null);
   const [lastPlayedNote, setLastPlayedNote] = useState<string | null>(null);
-=======
   const [activePad, setActivePad] = useState<number | null>(null);
->>>>>>> theirs
   const active = chords[activeIndex] ?? chords[0];
   const midiNoteToIndexRef = useRef(new Map<number, number>());
 

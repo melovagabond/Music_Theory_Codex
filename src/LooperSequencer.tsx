@@ -313,6 +313,7 @@ export const LooperSequencer: React.FC<LooperSequencerProps> = ({ chords }) => {
     guitar: "Guitar",
     ukulele: "Ukulele",
     bass: "Bass",
+    drums: "Drum kit",
   };
 
   return (
