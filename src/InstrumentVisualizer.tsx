@@ -17,7 +17,14 @@ import {
 import type { Genre, ProgressionChord } from "./types/codex";
 import { useMidiInput } from "./hooks/useMidiInput";
 import { CHORD_SHAPES, ChordShapeKey } from "./data/chordShapes";
-import { InstrumentKey, playChord, warmupSamples } from "./audio/sampler";
+import {
+  InstrumentKey,
+  parseRootMidi,
+  playChord,
+  renderProgressionOffline,
+  warmupSamples,
+} from "./audio/sampler";
+import { encodeAudioBufferToMp3 } from "./audio/encoder";
 
 interface InstrumentVisualizerProps {
   genre: Genre;
@@ -36,34 +43,6 @@ const INSTRUMENT_OPTIONS: { value: InstrumentKey; label: string }[] = [
 // Simple QWERTY mapping for quick chord stepping
 const KEY_BINDINGS = ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"] as const;
 type KeyBinding = (typeof KEY_BINDINGS)[number];
-
-const NOTE_BASE: Record<string, number> = {
-  C: 60,
-  "C#": 61,
-  Db: 61,
-  D: 62,
-  "D#": 63,
-  Eb: 63,
-  E: 64,
-  F: 65,
-  "F#": 66,
-  Gb: 66,
-  G: 67,
-  "G#": 68,
-  Ab: 68,
-  A: 69,
-  "A#": 70,
-  Bb: 70,
-  B: 71,
-};
-
-const parseRootMidi = (symbol: string): number | null => {
-  const match = symbol.match(/^([A-Ga-g])(#{1}|b)?/);
-  if (!match) return null;
-  const [, root, accidental] = match;
-  const key = `${root.toUpperCase()}${accidental ?? ""}`;
-  return NOTE_BASE[key] ?? null;
-};
 
 const varLen = (value: number): number[] => {
   const buffer: number[] = [];
@@ -378,6 +357,8 @@ export const InstrumentVisualizer: React.FC<InstrumentVisualizerProps> = ({
   const [midiFocusIndex, setMidiFocusIndex] = useState<number | null>(null);
   const [instrument, setInstrument] = useState<InstrumentKey>("piano");
   const [muted, setMuted] = useState(false);
+  const [exportingMp3, setExportingMp3] = useState(false);
+  const [mp3Error, setMp3Error] = useState<string | null>(null);
   const active = chords[activeIndex] ?? chords[0];
 
   const midiNoteToIndexRef = useRef(new Map<number, number>());
@@ -403,6 +384,41 @@ export const InstrumentVisualizer: React.FC<InstrumentVisualizerProps> = ({
     anchor.click();
     URL.revokeObjectURL(url);
   };
+
+  const handleExportMp3 = useCallback(async () => {
+    setMp3Error(null);
+    setExportingMp3(true);
+    try {
+      const offlineBuffer = await renderProgressionOffline(
+        chords.map((chord) => ({
+          symbol: chord.symbol,
+          shape: resolveShapeKey(chord),
+        })),
+        instrument
+      );
+
+      if (!offlineBuffer) {
+        throw new Error(
+          "Offline rendering is not available in this browser environment."
+        );
+      }
+
+      const mp3 = await encodeAudioBufferToMp3(offlineBuffer);
+      const url = URL.createObjectURL(mp3);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `${genre.id}-progression.mp3`;
+      anchor.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Unable to export MP3 at this time.";
+      setMp3Error(message);
+      console.error(err);
+    } finally {
+      setExportingMp3(false);
+    }
+  }, [chords, genre.id, instrument, resolveShapeKey]);
 
   useEffect(() => {
     warmupSamples();
@@ -594,6 +610,18 @@ export const InstrumentVisualizer: React.FC<InstrumentVisualizerProps> = ({
           >
             <Download className="h-4 w-4" /> Export MIDI
           </button>
+          <button
+            onClick={handleExportMp3}
+            disabled={exportingMp3}
+            className={`inline-flex items-center gap-2 px-3 py-2 rounded-md border bg-slate-900 text-slate-100 transition-colors ${
+              exportingMp3
+                ? "opacity-70 cursor-wait border-slate-700"
+                : "border-slate-800 hover:border-emerald-400 hover:text-emerald-100"
+            }`}
+          >
+            <Music2 className="h-4 w-4" />
+            {exportingMp3 ? "Rendering…" : "Export MP3"}
+          </button>
           <div className="inline-flex items-center gap-2 px-3 py-2 rounded-md bg-slate-900 border border-slate-800 text-slate-100">
             <Radio className="h-4 w-4 text-emerald-300" />
             <label className="text-[11px] uppercase tracking-wide text-slate-400">
@@ -637,6 +665,13 @@ export const InstrumentVisualizer: React.FC<InstrumentVisualizerProps> = ({
             <Lightbulb className="h-4 w-4" /> Explain this progression
           </button>
         </div>
+
+        {mp3Error && (
+          <div className="flex items-center gap-2 text-rose-300 text-xs px-3">
+            <AlertTriangle className="h-4 w-4" />
+            <span>{mp3Error}</span>
+          </div>
+        )}
 
         <div className="bg-slate-900 border border-slate-800 rounded-lg p-3 text-xs space-y-2">
           <div className="flex flex-wrap items-center gap-2 text-slate-200">
