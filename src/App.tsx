@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { CircleOfFifthsTool } from "./CircleOfFifthsTool";
 import { InstrumentVisualizer, deriveProgressionChords } from "./InstrumentVisualizer";
+import { LooperSequencer } from "./LooperSequencer";
 import { phases } from "./data/phases";
 import { phaseHistories } from "./data/phaseHistories";
 import { genreHistories } from "./data/genreHistories";
@@ -773,6 +774,8 @@ const MusicCodexApp: React.FC = () => {
                     </ul>
                   </section>
                 )}
+
+                <LooperSequencer chords={chordsForActive} />
 
                 {/* Instrument Visualizer */}
                 <InstrumentVisualizer genre={activeGenre} chords={chordsForActive} />
