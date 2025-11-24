@@ -115,3 +115,6 @@ public
 # macOS
 
 .DS_Store
+
+# Scratch directory for testing
+.scratch/
