@@ -138,6 +138,76 @@ const semitoneToNote = (value: number, preferSharps: boolean) => {
   return table[((value % 12) + 12) % 12];
 };
 
+const parseAccidentals = (value: string) => {
+  const match = value.match(/(\d+)([♯♭])/);
+  if (!match) {
+    return { count: 0, symbol: "♮" as "♯" | "♭" | "♮" };
+  }
+
+  const [, count, symbol] = match;
+  return { count: Number(count), symbol: symbol as "♯" | "♭" };
+};
+
+const signatureGlyph = (accidentals: string) => {
+  const { count, symbol } = parseAccidentals(accidentals);
+  if (count === 0) return "♮";
+
+  const glyph = symbol === "♯" ? "♯" : "♭";
+  return glyph.repeat(Math.min(count, 6)) + (count > 6 ? "…" : "");
+};
+
+const polarToCartesian = (
+  center: number,
+  radius: number,
+  angleInDegrees: number
+) => {
+  const angleInRadians = ((angleInDegrees - 90) * Math.PI) / 180.0;
+
+  return {
+    x: center + radius * Math.cos(angleInRadians),
+    y: center + radius * Math.sin(angleInRadians),
+  };
+};
+
+const describeRingSlice = (
+  startAngle: number,
+  endAngle: number,
+  innerRadius: number,
+  outerRadius: number
+) => {
+  const startOuter = polarToCartesian(50, outerRadius, endAngle);
+  const endOuter = polarToCartesian(50, outerRadius, startAngle);
+  const startInner = polarToCartesian(50, innerRadius, startAngle);
+  const endInner = polarToCartesian(50, innerRadius, endAngle);
+  const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
+
+  return [
+    "M",
+    startOuter.x,
+    startOuter.y,
+    "A",
+    outerRadius,
+    outerRadius,
+    0,
+    largeArcFlag,
+    0,
+    endOuter.x,
+    endOuter.y,
+    "L",
+    startInner.x,
+    startInner.y,
+    "A",
+    innerRadius,
+    innerRadius,
+    0,
+    largeArcFlag,
+    1,
+    endInner.x,
+    endInner.y,
+    "Z",
+  ].join(" ");
+};
+
 // Functional snapshot for the active major key
 const getMajorFunctionalChords = (key: CircleKey): CircleChord[] => [
   {
@@ -371,6 +441,7 @@ export const CircleOfFifthsTool: React.FC = () => {
   const [activeKey, setActiveKey] = useState<CircleKey>(CIRCLE_KEYS[0]);
   const [activeChordIndex, setActiveChordIndex] = useState<number>(0);
   const [viewMode, setViewMode] = useState<"major" | "minor">("major");
+  const [hoveredKeyIndex, setHoveredKeyIndex] = useState<number | null>(null);
 
   const preferSharps = useMemo(
     () => /#|♯/.test(activeKey.name) || /#|♯/.test(activeKey.relativeMinor),
@@ -422,6 +493,12 @@ export const CircleOfFifthsTool: React.FC = () => {
 
   const chordDisplayName = `${chordRootLabel}${chordQuality}`;
 
+  const segmentAngle = 360 / CIRCLE_KEYS.length;
+  const activeIndex = useMemo(
+    () => CIRCLE_KEYS.findIndex(key => key.name === activeKey.name),
+    [activeKey.name]
+  );
+
   const transposedGuitarFrets = useMemo(
     () => transposeFrets(shape.guitarFrets, chordRoot),
     [chordRoot, shape.guitarFrets]
@@ -465,6 +542,59 @@ export const CircleOfFifthsTool: React.FC = () => {
               style={{ inset: "8%" }}
             />
 
+            <svg
+              className="absolute inset-0 z-[1]"
+              viewBox="0 0 100 100"
+              role="presentation"
+            >
+              <defs>
+                {CIRCLE_KEYS.map((key, index) => {
+                  const { symbol } = parseAccidentals(key.accidentals);
+                  const hue = symbol === "♭" ? "#a855f7" : symbol === "♯" ? "#22d3ee" : "#fbbf24";
+                  return (
+                    <radialGradient
+                      key={key.name}
+                      id={`wedge-${index}`}
+                      cx="50%"
+                      cy="50%"
+                      r="70%"
+                    >
+                      <stop offset="20%" stopColor={hue} stopOpacity="0.16" />
+                      <stop offset="70%" stopColor={hue} stopOpacity="0.06" />
+                      <stop offset="100%" stopColor="#0f172a" stopOpacity="0" />
+                    </radialGradient>
+                  );
+                })}
+              </defs>
+
+              {CIRCLE_KEYS.map((key, index) => {
+                const startAngle = index * segmentAngle - segmentAngle / 2;
+                const endAngle = startAngle + segmentAngle;
+                const { symbol } = parseAccidentals(key.accidentals);
+                const isActive = index === activeIndex;
+                const isHovered = index === hoveredKeyIndex;
+                const isHighlighted = isActive || isHovered;
+                const strokeColor =
+                  symbol === "♭" ? "#c084fc" : symbol === "♯" ? "#34d399" : "#fbbf24";
+
+                return (
+                  <path
+                    key={`${key.name}-wedge`}
+                    d={describeRingSlice(startAngle, endAngle, 22, 48)}
+                    fill={`url(#wedge-${index})`}
+                    stroke={isHighlighted ? strokeColor : "transparent"}
+                    strokeWidth={isHighlighted ? 0.6 : 0}
+                    style={{
+                      opacity: isHighlighted ? 0.95 : 0.35,
+                      transformOrigin: "50% 50%",
+                      transform: isHighlighted ? "scale(1.02) rotate(0.6deg)" : "scale(1)",
+                    }}
+                    className="transition-all duration-300 ease-out"
+                  />
+                );
+              })}
+            </svg>
+
             {/* Active center badge */}
             <div className="relative z-10 w-[38%] max-w-44 aspect-square rounded-full bg-gradient-to-br from-amber-500/80 to-pink-500/80 flex flex-col items-center justify-center text-slate-950 shadow-[0_0_40px_rgba(251,191,36,0.5)]">
               <div className="text-[11px] font-mono uppercase mb-1 text-slate-900/80">
@@ -482,6 +612,7 @@ export const CircleOfFifthsTool: React.FC = () => {
             {CIRCLE_KEYS.map((key, index) => {
               const angleDeg = index * (360 / CIRCLE_KEYS.length);
               const isActive = key.name === activeKey.name;
+              const { count, symbol } = parseAccidentals(key.accidentals);
               return (
                 <button
                   key={key.name}
@@ -489,22 +620,30 @@ export const CircleOfFifthsTool: React.FC = () => {
                     setActiveKey(key);
                     setActiveChordIndex(0);
                   }}
+                  onMouseEnter={() => setHoveredKeyIndex(index)}
+                  onMouseLeave={() => setHoveredKeyIndex(null)}
                   className={`
-                    absolute left-1/2 top-1/2 origin-center 
+                    absolute left-1/2 top-1/2 origin-center
                     -translate-x-1/2 -translate-y-1/2
                     text-xs font-mono px-2 py-1 rounded-full border
                     transition-all duration-200
                     ${
                       isActive
                         ? "bg-amber-400 text-slate-900 border-amber-200 shadow-lg scale-110"
-                        : "bg-slate-900/90 text-slate-200 border-slate-700 hover:bg-slate-800 hover:border-slate-500"
+                        : "bg-slate-900/90 text-slate-200 border-slate-700 hover:bg-slate-800 hover:border-slate-500 hover:scale-[1.03]"
                     }
                   `}
                   style={{
                     transform: `rotate(${angleDeg}deg) translateY(calc(var(--outer-radius) * -1)) rotate(${-angleDeg}deg)`,
                   }}
                 >
-                  {key.name}
+                  <div className="flex flex-col items-center leading-tight">
+                    <span className="font-bold tracking-tight">{key.name}</span>
+                    <span className="text-[9px] text-amber-950/80 font-semibold">
+                      {count ? `${count}${symbol}` : "0"}
+                    </span>
+                    <span className="text-[8px] text-slate-700">{signatureGlyph(key.accidentals)}</span>
+                  </div>
                 </button>
               );
             })}
@@ -513,11 +652,12 @@ export const CircleOfFifthsTool: React.FC = () => {
             {CIRCLE_KEYS.map((key, index) => {
               const angleDeg = index * (360 / CIRCLE_KEYS.length) + 15;
               const isActive = key.name === activeKey.name;
+              const { count, symbol } = parseAccidentals(key.accidentals);
               return (
                 <div
                   key={`${key.name}-minor`}
                   className={`
-                    absolute left-1/2 top-1/2 origin-center 
+                    absolute left-1/2 top-1/2 origin-center
                     -translate-x-1/2 -translate-y-1/2
                     text-[9px] font-mono px-1.5 py-0.5 rounded-full
                     ${
@@ -526,11 +666,18 @@ export const CircleOfFifthsTool: React.FC = () => {
                         : "bg-slate-900/70 text-slate-400"
                     }
                   `}
+                  onMouseEnter={() => setHoveredKeyIndex(index)}
+                  onMouseLeave={() => setHoveredKeyIndex(null)}
                   style={{
                     transform: `rotate(${angleDeg}deg) translateY(calc(var(--inner-radius) * -1)) rotate(${-angleDeg}deg)`,
                   }}
                 >
-                  {key.relativeMinor}
+                  <div className="flex flex-col items-center leading-tight">
+                    <span>{key.relativeMinor}</span>
+                    <span className="text-[8px] text-slate-200/70">
+                      {count ? `${count}${symbol}` : "0"}
+                    </span>
+                  </div>
                 </div>
               );
             })}
