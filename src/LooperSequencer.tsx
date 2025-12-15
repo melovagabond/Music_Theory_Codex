@@ -177,10 +177,13 @@ export const LooperSequencer: React.FC<LooperSequencerProps> = ({ chords }) => {
   const [inputTarget, setInputTarget] = useState<"looper" | "sequencer" | null>(
     null
   );
+  const [metronomeEnabled, setMetronomeEnabled] = useState(false);
+  const [beatIndex, setBeatIndex] = useState(0);
 
   const recordStartRef = useRef<number | null>(null);
   const playbackTimers = useRef<number[]>([]);
   const sequencerTimer = useRef<number | null>(null);
+  const metronomeTimer = useRef<number | null>(null);
 
   useEffect(() => {
     warmupSamples();
@@ -190,6 +193,7 @@ export const LooperSequencer: React.FC<LooperSequencerProps> = ({ chords }) => {
     return () => {
       playbackTimers.current.forEach((t) => window.clearTimeout(t));
       if (sequencerTimer.current) window.clearInterval(sequencerTimer.current);
+      if (metronomeTimer.current) window.clearInterval(metronomeTimer.current);
     };
   }, []);
 
@@ -215,6 +219,29 @@ export const LooperSequencer: React.FC<LooperSequencerProps> = ({ chords }) => {
     drumPlayers[drum]();
   };
 
+  const triggerMetronomeClick = useCallback(
+    (accent: boolean) => {
+      const ctx = getAudioContext();
+      if (!ctx) return;
+
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const now = ctx.currentTime;
+
+      osc.type = "square";
+      osc.frequency.setValueAtTime(accent ? 2000 : 1500, now);
+
+      gain.gain.setValueAtTime(accent ? 0.2 : 0.12, now);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.06);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.08);
+    },
+    []
+  );
+
   const handleTrigger = useCallback(
     (event: StepEvent) => {
       if (event.type === "chord") {
@@ -236,6 +263,7 @@ export const LooperSequencer: React.FC<LooperSequencerProps> = ({ chords }) => {
   );
 
   const startRecording = () => {
+    setSequencerPlaying(false);
     setTimeline([]);
     setRecording(true);
     recordStartRef.current = performance.now();
@@ -248,6 +276,7 @@ export const LooperSequencer: React.FC<LooperSequencerProps> = ({ chords }) => {
 
   const startPlayback = () => {
     if (timeline.length === 0) return;
+    setSequencerPlaying(false);
     setPlaying(true);
     const start = performance.now();
     const timers = timeline.map((item) =>
@@ -310,6 +339,38 @@ export const LooperSequencer: React.FC<LooperSequencerProps> = ({ chords }) => {
       sequencerTimer.current = null;
     };
   }, [handleTrigger, sequencerPlaying, stepDuration, stepCount, steps]);
+
+  useEffect(() => {
+    if (!metronomeEnabled) {
+      if (metronomeTimer.current) {
+        window.clearInterval(metronomeTimer.current);
+        metronomeTimer.current = null;
+      }
+      return;
+    }
+
+    const beatInterval = (60 / bpm) * 1000;
+    if (metronomeTimer.current) {
+      window.clearInterval(metronomeTimer.current);
+    }
+
+    let localBeat = 0;
+    setBeatIndex(0);
+    triggerMetronomeClick(true);
+
+    const timer = window.setInterval(() => {
+      localBeat = (localBeat + 1) % 4;
+      setBeatIndex(localBeat);
+      triggerMetronomeClick(localBeat === 0);
+    }, beatInterval);
+
+    metronomeTimer.current = timer;
+
+    return () => {
+      window.clearInterval(timer);
+      metronomeTimer.current = null;
+    };
+  }, [bpm, metronomeEnabled, triggerMetronomeClick]);
 
   const updateStepEvent = useCallback((index: number, event: StepEvent | null) => {
     setSteps((prev) => {
@@ -573,6 +634,28 @@ export const LooperSequencer: React.FC<LooperSequencerProps> = ({ chords }) => {
                 onChange={(e) => setBpm(Number(e.target.value) || 1)}
                 className="w-20 bg-slate-950 text-slate-100 text-xs rounded-lg px-3 py-1 border border-slate-800"
               />
+              <button
+                onClick={() => setMetronomeEnabled((prev) => !prev)}
+                className={`flex items-center gap-1 px-3 py-1 rounded-lg text-[11px] font-semibold border transition-colors ${
+                  metronomeEnabled
+                    ? "bg-emerald-500/20 text-emerald-100 border-emerald-500/40"
+                    : "bg-slate-900 text-slate-300 border-slate-700 hover:border-emerald-400/40"
+                }`}
+              >
+                {metronomeEnabled ? "Metronome On" : "Metronome"}
+              </button>
+              <div className="flex items-center gap-1" aria-label="Beat indicator">
+                {Array.from({ length: 4 }).map((_, idx) => (
+                  <span
+                    key={idx}
+                    className={`h-2.5 w-2.5 rounded-full border border-slate-700 transition-colors duration-150 ${
+                      metronomeEnabled && beatIndex === idx
+                        ? "bg-emerald-400 shadow-[0_0_0_2px_rgba(16,185,129,0.25)]"
+                        : "bg-slate-800"
+                    }`}
+                  />
+                ))}
+              </div>
             </div>
           </div>
 
@@ -600,11 +683,12 @@ export const LooperSequencer: React.FC<LooperSequencerProps> = ({ chords }) => {
 
             <button
               onClick={toggleSequencer}
+              disabled={recording || playing}
               className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold border transition-colors ${
                 sequencerPlaying
                   ? "bg-slate-800 text-white border-slate-700"
                   : "bg-emerald-500/20 text-emerald-100 border-emerald-500/40"
-              }`}
+              } ${recording || playing ? "opacity-60 cursor-not-allowed" : ""}`}
             >
               {sequencerPlaying ? <Square className="h-4 w-4" /> : <Play className="h-4 w-4" />} {" "}
               {sequencerPlaying ? "Stop" : "Play"} Loop
