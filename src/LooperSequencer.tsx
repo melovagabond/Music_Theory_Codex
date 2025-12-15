@@ -619,38 +619,46 @@ export const LooperSequencer: React.FC<LooperSequencerProps> = ({ chords }) => {
             onFocusCapture={() => handleInputFocus("sequencer")}
             onBlurCapture={(event) => handleInputBlur(event, "sequencer")}
           >
-            {steps.map((event, idx) => (
-              <button
-                key={idx}
-                onClick={() =>
-                  updateStepEvent(
-                    idx,
-                    event
-                      ? null
-                      : { type: "drum", drum: "hat" }
-                  )
-                }
-                className={`relative h-16 rounded-lg border text-xs transition-all flex flex-col items-center justify-center gap-1 ${
-                  currentStep === idx && sequencerPlaying
-                    ? "border-emerald-400 shadow-lg shadow-emerald-500/30"
-                    : "border-slate-800"
-                } ${event ? "bg-indigo-500/20 text-indigo-50" : "bg-slate-900 text-slate-400"}`}
-              >
-                <span className="font-mono text-[10px] text-slate-500">{idx + 1}</span>
-                {event ? (
-                  <>
-                    <span className="font-semibold">
-                      {event.type === "chord"
-                        ? event.chord.symbol
-                        : event.drum.toUpperCase()}
-                    </span>
-                    <span className="text-[10px] text-indigo-100">Tap to clear</span>
-                  </>
-                ) : (
-                  <span className="text-[10px]">Empty</span>
-                )}
-              </button>
-            ))}
+            {steps.map((event, idx) => {
+              const isSelected = currentStep === idx;
+              const isActiveStep = sequencerPlaying && isSelected;
+
+              return (
+                <button
+                  key={idx}
+                  onClick={() => {
+                    setCurrentStep(idx);
+                    updateStepEvent(
+                      idx,
+                      event
+                        ? null
+                        : { type: "drum", drum: "hat" }
+                    );
+                  }}
+                  className={`relative h-16 rounded-lg border text-xs transition-all flex flex-col items-center justify-center gap-1 ${
+                    isActiveStep
+                      ? "border-emerald-400 shadow-lg shadow-emerald-500/30"
+                      : isSelected
+                        ? "border-indigo-400/70"
+                        : "border-slate-800"
+                  } ${event ? "bg-indigo-500/20 text-indigo-50" : "bg-slate-900 text-slate-400"}`}
+                >
+                  <span className="font-mono text-[10px] text-slate-500">{idx + 1}</span>
+                  {event ? (
+                    <>
+                      <span className="font-semibold">
+                        {event.type === "chord"
+                          ? event.chord.symbol
+                          : event.drum.toUpperCase()}
+                      </span>
+                      <span className="text-[10px] text-indigo-100">Tap to clear</span>
+                    </>
+                  ) : (
+                    <span className="text-[10px]">Empty</span>
+                  )}
+                </button>
+              );
+            })}
           </div>
 
           <div className="bg-slate-950 border border-slate-800 rounded-lg p-3 space-y-2">
