@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivitySquare,
   Circle,
@@ -174,6 +174,9 @@ export const LooperSequencer: React.FC<LooperSequencerProps> = ({ chords }) => {
   const [steps, setSteps] = useState<Array<StepEvent | null>>(
     Array.from({ length: 16 }, () => null)
   );
+  const [inputTarget, setInputTarget] = useState<"looper" | "sequencer" | null>(
+    null
+  );
 
   const recordStartRef = useRef<number | null>(null);
   const playbackTimers = useRef<number[]>([]);
@@ -199,30 +202,38 @@ export const LooperSequencer: React.FC<LooperSequencerProps> = ({ chords }) => {
 
   const stepDuration = useMemo(() => (60 / bpm) * (4 / stepCount), [bpm, stepCount]);
 
-  const triggerChord = async (chord: ProgressionChord) => {
-    const root = parseRootMidi(chord.symbol) ?? 60;
-    const shape = resolveShape(chord.shape);
-    await playChord(shape, root, instrument);
-  };
+  const triggerChord = useCallback(
+    async (chord: ProgressionChord) => {
+      const root = parseRootMidi(chord.symbol) ?? 60;
+      const shape = resolveShape(chord.shape);
+      await playChord(shape, root, instrument);
+    },
+    [instrument]
+  );
 
   const triggerDrum = (drum: DrumType) => {
     drumPlayers[drum]();
   };
 
-  const handleTrigger = (event: StepEvent) => {
-    if (event.type === "chord") {
-      triggerChord(event.chord);
-    } else {
-      triggerDrum(event.drum);
-    }
+  const handleTrigger = useCallback(
+    (event: StepEvent) => {
+      if (event.type === "chord") {
+        triggerChord(event.chord);
+      } else {
+        triggerDrum(event.drum);
+      }
 
-    if (recording && recordStartRef.current !== null) {
-      const now = performance.now();
-      const elapsedSeconds = (now - recordStartRef.current) / 1000;
-      const snapped = quantizeTime(elapsedSeconds, bpm, quantization);
-      setTimeline((prev) => [...prev, { time: snapped, event }].sort((a, b) => a.time - b.time));
-    }
-  };
+      if (recording && recordStartRef.current !== null) {
+        const now = performance.now();
+        const elapsedSeconds = (now - recordStartRef.current) / 1000;
+        const snapped = quantizeTime(elapsedSeconds, bpm, quantization);
+        setTimeline((prev) =>
+          [...prev, { time: snapped, event }].sort((a, b) => a.time - b.time)
+        );
+      }
+    },
+    [bpm, quantization, recording, triggerChord]
+  );
 
   const startRecording = () => {
     setTimeline([]);
@@ -298,15 +309,87 @@ export const LooperSequencer: React.FC<LooperSequencerProps> = ({ chords }) => {
       window.clearInterval(timer);
       sequencerTimer.current = null;
     };
-  }, [sequencerPlaying, stepDuration, stepCount, steps]);
+  }, [handleTrigger, sequencerPlaying, stepDuration, stepCount, steps]);
 
-  const updateStepEvent = (index: number, event: StepEvent | null) => {
+  const updateStepEvent = useCallback((index: number, event: StepEvent | null) => {
     setSteps((prev) => {
       const copy = [...prev];
       copy[index] = event;
       return copy;
     });
+  }, []);
+
+  const handleInputFocus = (target: "looper" | "sequencer") => {
+    setInputTarget(target);
   };
+
+  const handleInputBlur = (
+    event: React.FocusEvent<HTMLElement>,
+    target: "looper" | "sequencer"
+  ) => {
+    const relatedTarget = event.relatedTarget as Node | null;
+    if (inputTarget !== target) return;
+    if (!relatedTarget || !event.currentTarget.contains(relatedTarget)) {
+      setInputTarget(null);
+    }
+  };
+
+  useEffect(() => {
+    const looperChordKeys = ["1", "2", "3", "4", "5", "6"];
+    const drumKeys: Record<string, DrumType> = {
+      q: "kick",
+      w: "snare",
+      e: "hat",
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (inputTarget === "looper") {
+        const chordIndex = looperChordKeys.indexOf(event.key);
+        if (chordIndex !== -1 && chords[chordIndex]) {
+          event.preventDefault();
+          handleTrigger({ type: "chord", chord: chords[chordIndex] });
+          return;
+        }
+
+        const drum = drumKeys[event.key.toLowerCase()];
+        if (drum) {
+          event.preventDefault();
+          handleTrigger({ type: "drum", drum });
+          return;
+        }
+      }
+
+      if (inputTarget === "sequencer") {
+        if (event.key === "ArrowRight") {
+          event.preventDefault();
+          setCurrentStep((prev) => (prev + 1) % stepCount);
+          return;
+        }
+
+        if (event.key === "ArrowLeft") {
+          event.preventDefault();
+          setCurrentStep((prev) => (prev - 1 + stepCount) % stepCount);
+          return;
+        }
+
+        if (event.key === " " || event.key === "Enter") {
+          event.preventDefault();
+          const nextEvent = steps[currentStep]
+            ? null
+            : ({ type: "drum", drum: "hat" } as StepEvent);
+          updateStepEvent(currentStep, nextEvent);
+          if (nextEvent) {
+            handleTrigger(nextEvent);
+          }
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [chords, currentStep, handleTrigger, inputTarget, stepCount, steps, updateStepEvent]);
 
   const instrumentLabel: Record<InstrumentKey, string> = {
     piano: "Piano",
@@ -378,7 +461,14 @@ export const LooperSequencer: React.FC<LooperSequencerProps> = ({ chords }) => {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          <div
+            className="grid grid-cols-2 sm:grid-cols-3 gap-2"
+            tabIndex={0}
+            role="group"
+            aria-label="Live chord and drum pads"
+            onFocusCapture={() => handleInputFocus("looper")}
+            onBlurCapture={(event) => handleInputBlur(event, "looper")}
+          >
             {chords.slice(0, 6).map((chord, idx) => (
               <button
                 key={`${chord.symbol}-${idx}`}
@@ -521,7 +611,14 @@ export const LooperSequencer: React.FC<LooperSequencerProps> = ({ chords }) => {
             </button>
           </div>
 
-          <div className="grid grid-cols-4 sm:grid-cols-8 gap-2 bg-slate-950 border border-slate-800 rounded-lg p-3">
+          <div
+            className="grid grid-cols-4 sm:grid-cols-8 gap-2 bg-slate-950 border border-slate-800 rounded-lg p-3"
+            tabIndex={0}
+            role="grid"
+            aria-label="Step sequencer grid"
+            onFocusCapture={() => handleInputFocus("sequencer")}
+            onBlurCapture={(event) => handleInputBlur(event, "sequencer")}
+          >
             {steps.map((event, idx) => (
               <button
                 key={idx}
