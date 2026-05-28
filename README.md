@@ -6,15 +6,13 @@ instrument voicings, and Circle of Fifths movement.
 ## What Is Here
 
 - Flutter app shell with responsive desktop/mobile navigation.
-- Phase and genre browser backed by JSON assets generated from the original
-  TypeScript data.
+- Phase and genre browser backed by JSON assets.
 - Interactive Circle of Fifths with major/minor functional chord views.
 - Instrument Lab for piano, guitar, ukulele, bass, and drums.
 - WAV sample playback using Flutter assets and `audioplayers`.
 - Flutter web Docker image served by Nginx.
 
-The legacy React/Vite sources are still present under `src/` for comparison
-while the Flutter rebase settles. The active app entrypoint is `lib/main.dart`.
+The active app entrypoint is `lib/main.dart`.
 
 ## Requirements
 
