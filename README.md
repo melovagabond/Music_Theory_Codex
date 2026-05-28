@@ -80,11 +80,10 @@ web/, android/, ios/, macos/
   Flutter platform scaffolding
 ```
 
-## Data Refresh
+## Data Updates
 
-The current JSON assets were generated from the original TypeScript modules in
-`src/data`. If those source modules change, regenerate the JSON assets before
-building Flutter.
+The Flutter app loads its codex content from `assets/data/*.json`. Update those
+JSON assets directly when changing phases, genres, histories, or chord shapes.
 
 ## License
 
